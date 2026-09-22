@@ -1,0 +1,26 @@
+// src/app/(dashboard)/layout.tsx
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth-options'
+import { redirect } from 'next/navigation'
+import { Sidebar } from '@/components/layout/sidebar'
+import { prisma } from '@/lib/prisma'
+
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions)
+  if (!session) redirect('/login')
+
+  // Conta usuários pendentes para o badge
+  let pendingUsers = 0
+  if (session.user.role === 'SUPER_ADMIN') {
+    pendingUsers = await prisma.user.count({ where: { status: 'PENDENTE' } })
+  }
+
+  return (
+    <div className="app-layout">
+      <Sidebar pendingUsers={pendingUsers} />
+      <main className="main-content">
+        {children}
+      </main>
+    </div>
+  )
+}

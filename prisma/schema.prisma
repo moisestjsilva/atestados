@@ -1,0 +1,313 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// USUÁRIOS E ACESSO
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  CONSULTOR
+}
+
+enum UserStatus {
+  PENDENTE
+  ATIVO
+  BLOQUEADO
+  RECUSADO
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  password  String
+  role      UserRole   @default(CONSULTOR)
+  status    UserStatus @default(PENDENTE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  lastLogin DateTime?
+
+  passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]
+  bulkImports         BulkImport[]
+  certificates        MedicalCertificate[]
+
+  @@index([email])
+  @@index([status])
+  @@map("users")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("password_reset_tokens")
+}
+
+// ─────────────────────────────────────────────
+// SETORES
+// ─────────────────────────────────────────────
+
+enum DepartmentStatus {
+  ATIVO
+  INATIVO
+}
+
+model Department {
+  id        String           @id @default(cuid())
+  code      String           @unique
+  name      String
+  status    DepartmentStatus @default(ATIVO)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  employees Employee[]
+
+  @@index([code])
+  @@index([name])
+  @@map("departments")
+}
+
+// ─────────────────────────────────────────────
+// FUNCIONÁRIOS
+// ─────────────────────────────────────────────
+
+enum EmployeeStatus {
+  ATIVO
+  INATIVO
+}
+
+model Employee {
+  id           String         @id @default(cuid())
+  matricula    String?        @unique
+  name         String
+  cpf          String         @unique // Armazenado sem formatação: 12345678900
+  birthDate    DateTime?
+  cargo        String?
+  departmentId String
+  admissionDate DateTime?
+  status       EmployeeStatus @default(ATIVO)
+  deletedAt    DateTime?      // Exclusão lógica
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  department   Department           @relation(fields: [departmentId], references: [id])
+  certificates MedicalCertificate[]
+
+  @@index([cpf])
+  @@index([matricula])
+  @@index([name])
+  @@index([departmentId])
+  @@index([status])
+  @@map("employees")
+}
+
+// ─────────────────────────────────────────────
+// CIDs
+// ─────────────────────────────────────────────
+
+enum CidStatus {
+  ATIVO
+  INATIVO
+}
+
+model CidCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  description String
+  status      CidStatus @default(ATIVO)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  certificates MedicalCertificate[]
+
+  @@index([code])
+  @@index([description])
+  @@map("cid_codes")
+}
+
+// ─────────────────────────────────────────────
+// ATESTADOS
+// ─────────────────────────────────────────────
+
+enum CertificateStatus {
+  ATIVO
+  EXCLUIDO
+}
+
+model MedicalCertificate {
+  id              String            @id @default(cuid())
+  employeeId      String
+  cidId           String?
+  cidDescription  String?
+  doctor          String?
+  crm             String?
+  certificateDate DateTime
+  startDate       DateTime
+  endDate         DateTime
+  daysOff         Int
+  observations    String?
+  status          CertificateStatus @default(ATIVO)
+  deletedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  registeredById  String?
+
+  employee       Employee            @relation(fields: [employeeId], references: [id])
+  cid            CidCode?            @relation(fields: [cidId], references: [id])
+  registeredBy   User?               @relation(fields: [registeredById], references: [id])
+  files          CertificateFile[]
+  bulkImportItem BulkImportItem?
+
+  @@index([employeeId])
+  @@index([cidId])
+  @@index([certificateDate])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([status])
+  @@map("medical_certificates")
+}
+
+// ─────────────────────────────────────────────
+// ARQUIVOS DOS ATESTADOS
+// ─────────────────────────────────────────────
+
+model CertificateFile {
+  id            String   @id @default(cuid())
+  certificateId String
+  originalName  String
+  storedName    String
+  filePath      String
+  mimeType      String
+  sizeBytes     Int
+  uploadedById  String?
+  uploadedAt    DateTime @default(now())
+
+  certificate MedicalCertificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+
+  @@index([certificateId])
+  @@map("certificate_files")
+}
+
+// ─────────────────────────────────────────────
+// IMPORTAÇÕES EM MASSA
+// ─────────────────────────────────────────────
+
+enum ImportStatus {
+  PROCESSANDO
+  CONCLUIDO
+  CONCLUIDO_COM_ERROS
+  ERRO
+}
+
+model BulkImport {
+  id             String       @id @default(cuid())
+  userId         String
+  spreadsheetName String
+  totalRows      Int          @default(0)
+  imported       Int          @default(0)
+  errors         Int          @default(0)
+  pending        Int          @default(0)
+  status         ImportStatus @default(PROCESSANDO)
+  errorReport    Json?        // Relatório de erros em JSON
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user  User             @relation(fields: [userId], references: [id])
+  items BulkImportItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("bulk_imports")
+}
+
+enum BulkImportItemStatus {
+  OK
+  ERRO
+  PENDENTE
+  DUPLICIDADE
+  FUNCIONARIO_NAO_ENCONTRADO
+  CPF_INVALIDO
+  SEM_DOCUMENTO
+}
+
+model BulkImportItem {
+  id              String               @id @default(cuid())
+  bulkImportId    String
+  rowIndex        Int
+  cpf             String?
+  employeeName    String?
+  certificateDate String?
+  cidCode         String?
+  daysOff         Int?
+  fileName        String?
+  status          BulkImportItemStatus @default(PENDENTE)
+  errorMessage    String?
+  certificateId   String?              @unique
+  createdAt       DateTime             @default(now())
+
+  bulkImport   BulkImport          @relation(fields: [bulkImportId], references: [id], onDelete: Cascade)
+  certificate  MedicalCertificate? @relation(fields: [certificateId], references: [id])
+
+  @@index([bulkImportId])
+  @@index([cpf])
+  @@index([status])
+  @@map("bulk_import_items")
+}
+
+// ─────────────────────────────────────────────
+// LOG DE AUDITORIA
+// ─────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  userName   String?
+  action     String
+  resource   String
+  resourceId String?
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────
+// CONFIGURAÇÕES DO SISTEMA
+// ─────────────────────────────────────────────
+
+model SystemSettings {
+  id                String   @id @default(cuid())
+  companyName       String   @default("Empresa")
+  logoPath          String?
+  maxUploadMb       Int      @default(10)
+  allowedExtensions String   @default("pdf,jpg,jpeg,png")
+  itemsPerPage      Int      @default(20)
+  updatedAt         DateTime @updatedAt
+
+  @@map("system_settings")
+}
