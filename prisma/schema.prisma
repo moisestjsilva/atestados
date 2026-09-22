@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -162,7 +162,7 @@ model MedicalCertificate {
   startDate       DateTime
   endDate         DateTime
   daysOff         Int
-  observations    String?
+  observations    String?           @db.Text
   status          CertificateStatus @default(ATIVO)
   deletedAt       DateTime?
   createdAt       DateTime          @default(now())
@@ -259,7 +259,7 @@ model BulkImportItem {
   daysOff         Int?
   fileName        String?
   status          BulkImportItemStatus @default(PENDENTE)
-  errorMessage    String?
+  errorMessage    String?              @db.Text
   certificateId   String?              @unique
   createdAt       DateTime             @default(now())
 
