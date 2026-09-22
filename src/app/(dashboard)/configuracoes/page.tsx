@@ -2,8 +2,9 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { Settings, Save, Loader2 } from 'lucide-react'
+import { Settings, Save, Loader2, Palette } from 'lucide-react'
 import { toast } from '@/components/ui/toaster'
+import { ThemeSegmentedControl } from '@/components/ui/theme-toggle'
 
 interface SystemSettings {
   companyName: string
@@ -56,7 +57,19 @@ export default function ConfiguracoesPage() {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 size={28} className="animate-spin" /></div>
       ) : (
-        <div style={{ maxWidth: 600 }}>
+        <div style={{ maxWidth: 600, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Aparência e Tema */}
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <Palette size={20} style={{ color: 'hsl(var(--primary))' }} />
+              <h2 style={{ fontWeight: 600 }}>Aparência do Sistema</h2>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))', marginBottom: '1.25rem' }}>
+              Escolha a preferência visual de tema para a sua interface.
+            </p>
+            <ThemeSegmentedControl />
+          </div>
+
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
               <Settings size={20} style={{ color: 'hsl(var(--primary))' }} />

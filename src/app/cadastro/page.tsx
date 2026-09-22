@@ -2,8 +2,8 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { UserPlus, Mail, Lock, User, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export default function CadastroPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' })
@@ -11,7 +11,6 @@ export default function CadastroPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const router = useRouter()
 
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -42,7 +41,10 @@ export default function CadastroPage() {
 
   if (success) {
     return (
-      <div className="auth-page">
+      <div className="auth-page" style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', zIndex: 10 }}>
+          <ThemeToggle variant="icon" />
+        </div>
         <div className="auth-card animate-fade-in" style={{ textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
             <div style={{ width: 64, height: 64, background: 'hsl(142 71% 45% / 0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -63,7 +65,10 @@ export default function CadastroPage() {
   }
 
   return (
-    <div className="auth-page">
+    <div className="auth-page" style={{ position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', zIndex: 10 }}>
+        <ThemeToggle variant="icon" />
+      </div>
       <div className="auth-card animate-fade-in">
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, background: 'linear-gradient(135deg, hsl(217 91% 60%), #6366f1)', borderRadius: 16, marginBottom: '1rem' }}>

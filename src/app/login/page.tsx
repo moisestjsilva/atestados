@@ -5,6 +5,7 @@ import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, FileText, Lock, Mail, Loader2, Shield } from 'lucide-react'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 const ERROR_MESSAGES: Record<string, string> = {
   PENDENTE: '⏳ Sua conta está aguardando aprovação de um administrador.',
@@ -51,7 +52,10 @@ function LoginForm() {
   }
 
   return (
-    <div className="auth-page">
+    <div className="auth-page" style={{ position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', zIndex: 10 }}>
+        <ThemeToggle variant="icon" />
+      </div>
       <div className="auth-card animate-fade-in">
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>

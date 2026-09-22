@@ -9,9 +9,10 @@ import { getInitials } from '@/lib/utils'
 import {
   LayoutDashboard, FileText, Upload, Users, Building2,
   Stethoscope, BarChart3, Trophy, UserCog, ScrollText,
-  Settings, LogOut, ChevronLeft, Menu, Bell
+  Settings, LogOut, ChevronLeft, Menu
 } from 'lucide-react'
 import { useState } from 'react'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 interface NavItem {
   href: string
@@ -100,9 +101,11 @@ export function Sidebar({ pendingUsers = 0 }: { pendingUsers?: number }) {
         </div>
       </nav>
 
-      <div style={{ padding: '0.75rem', borderTop: '1px solid hsl(var(--border))' }}>
+      <div style={{ padding: '0.75rem', borderTop: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <ThemeToggle variant="nav" collapsed={collapsed} />
+
         {!collapsed && session?.user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.5rem 0.25rem', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.5rem 0.25rem', margin: '0.25rem 0' }}>
             <div className="avatar" style={{ width: 32, height: 32, fontSize: 12 }}>{getInitials(session.user.name || '')}</div>
             <div style={{ overflow: 'hidden', flex: 1 }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{session.user.name}</div>
