@@ -1,6 +1,6 @@
 // src/app/login/page.tsx
 'use client'
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -14,7 +14,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   default: '❌ Ocorreu um erro. Tente novamente.',
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -130,5 +130,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="auth-page"><div className="auth-card" style={{ textAlign: 'center', padding: '2rem' }}>Carregando...</div></div>}>
+      <LoginForm />
+    </Suspense>
   )
 }
