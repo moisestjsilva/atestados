@@ -36,12 +36,63 @@ export function formatCpf(cpf: string): string {
   return `${c.slice(0, 3)}.${c.slice(3, 6)}.${c.slice(6, 9)}-${c.slice(9)}`
 }
 
-/** Extrai CPF de uma string (nome de arquivo, etc.) */
+/** Extrai CPF de uma string (nome de arquivo, etc.), tratando inclusive CPFs com '0' no início que perderam o zero */
 export function extractCpfFromString(str: string): string | null {
-  const match = str.replace(/\D+/g, '').match(/\d{11}/)
-  if (!match) return null
-  const cpf = match[0]
-  return isValidCpf(cpf) ? cpf : null
+  if (!str) return null
+
+  // 1. Procura CPF com pontuação padrão: 000.000.000-00 ou 00.000.000-00 (sem 0 inicial)
+  const formattedMatches = str.match(/\b\d{2,3}[\.\s]\d{3}[\.\s]\d{3}[-\.]\d{2}\b/g)
+  if (formattedMatches) {
+    for (const m of formattedMatches) {
+      const cleaned = normalizeCpf(m)
+      if (isValidCpf(cleaned)) return cleaned
+    }
+  }
+
+  // 2. Divide a string por delimitadores comuns em nomes de arquivos (_, -, espaço, ., (, ), [ ], etc.)
+  // Ex: "atestado_01_07234567890.pdf" -> ["atestado", "01", "07234567890", "pdf"]
+  const parts = str.split(/[^0-9a-zA-Z]/).filter(Boolean)
+  for (const part of parts) {
+    const onlyDigits = part.replace(/\D/g, '')
+    // Sequência de 11 dígitos exatos
+    if (onlyDigits.length === 11 && isValidCpf(onlyDigits)) {
+      return onlyDigits
+    }
+    // Sequência de 10 dígitos (caso o CPF comece com '0' e o sistema/usuário tenha salvo sem o 0)
+    if (onlyDigits.length === 10) {
+      const withZero = '0' + onlyDigits
+      if (isValidCpf(withZero)) {
+        return withZero
+      }
+    }
+  }
+
+  // 3. Procura sequências contínuas de 11 dígitos na string inteira
+  const elevenDigitMatches = str.match(/\d{11}/g)
+  if (elevenDigitMatches) {
+    for (const m of elevenDigitMatches) {
+      if (isValidCpf(m)) return m
+    }
+  }
+
+  // 4. Procura sequências contínuas de 10 dígitos (com '0' inicial omitido)
+  const tenDigitMatches = str.match(/\d{10}/g)
+  if (tenDigitMatches) {
+    for (const m of tenDigitMatches) {
+      const withZero = '0' + m
+      if (isValidCpf(withZero)) return withZero
+    }
+  }
+
+  // 5. Se a string inteira conter apenas números entre 10 e 11 dígitos
+  const allDigits = str.replace(/\D/g, '')
+  if (allDigits.length === 11 && isValidCpf(allDigits)) return allDigits
+  if (allDigits.length === 10) {
+    const withZero = '0' + allDigits
+    if (isValidCpf(withZero)) return withZero
+  }
+
+  return null
 }
 
 /** Formata data: DD/MM/AAAA */

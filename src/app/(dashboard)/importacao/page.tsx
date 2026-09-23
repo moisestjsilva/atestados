@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import {
   Upload, FileSpreadsheet, FolderOpen, CheckCircle, AlertCircle, AlertTriangle,
-  Loader2, Download, RotateCcw, Eye, ChevronRight, X, FileText
+  Loader2, Download, RotateCcw, Eye, ChevronRight, X, FileText, Paperclip
 } from 'lucide-react'
 import { formatCpf, normalizeCpf, isValidCpf, extractCpfFromString } from '@/lib/utils'
 import { toast } from '@/components/ui/toaster'
@@ -34,7 +34,9 @@ interface SpreadsheetRow {
 interface FileMatch {
   fileName: string
   cpf: string | null
+  matchedBy: 'cpf' | 'nome' | 'manual' | null
   valid: boolean
+  file: File
 }
 
 interface PreviewItem {
@@ -47,6 +49,7 @@ interface PreviewItem {
   cidCode: string
   daysOff: number
   fileName: string | null
+  docFile: File | null
   status: 'OK' | 'ERRO' | 'SEM_DOCUMENTO' | 'PENDENTE' | 'DUPLICIDADE' | 'AVISO'
   errors: string[]
   employeeId?: string
@@ -55,9 +58,6 @@ interface PreviewItem {
   doctor?: string
   crm?: string
   observations?: string
-  fileData?: string
-  fileMime?: string
-  fileOriginalName?: string
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -78,26 +78,34 @@ const STATUS_CLASS: Record<string, string> = {
   DUPLICIDADE: 'badge-warning',
 }
 
-// Converte arquivo para Base64 de forma segura sem estourar pilha de memória
+// Converte arquivo para Base64 de forma assíncrona e segura
 async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.readAsDataURL(file)
     reader.onload = () => {
       const result = reader.result as string
       const base64 = result.includes(',') ? result.split(',')[1] : result
       resolve(base64)
     }
     reader.onerror = error => reject(error)
+    reader.readAsDataURL(file)
   })
+}
+
+// Normaliza texto para comparação fonética/de nomes (remove acentos e espaços)
+function cleanText(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '')
 }
 
 export default function ImportacaoPage() {
   const [step, setStep] = useState<Step>('upload-planilha')
   const [planilha, setPlanilha] = useState<File | null>(null)
   const [planilhaData, setPlanilhaData] = useState<SpreadsheetRow[]>([])
-  const [files, setFiles] = useState<File[]>([])
-  const [fileMatches, setFileMatches] = useState<FileMatch[]>([])
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [preview, setPreview] = useState<PreviewItem[]>([])
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [loading, setLoading] = useState(false)
@@ -135,33 +143,64 @@ export default function ImportacaoPage() {
       setPlanilhaData(data.rows || [])
       setStep('validar')
       toast(`Planilha carregada: ${data.total} registro(s) encontrados`, 'success')
-    } catch (err: any) {
+    } catch {
       setLoading(false)
       toast('Erro de conexão ao enviar a planilha', 'error')
     }
   }
 
-  // ETAPA 3: Upload e matching de documentos
-  async function handleFiles(selectedFiles: File[]) {
-    setFiles(selectedFiles)
-    const matches: FileMatch[] = selectedFiles.map(f => {
-      const cpf = extractCpfFromString(f.name)
-      return { fileName: f.name, cpf: cpf && isValidCpf(cpf) ? normalizeCpf(cpf) : null, valid: !!cpf }
-    })
-    setFileMatches(matches)
+  // ETAPA 3: Upload e matching inteligente de documentos (por CPF com ou sem 0, ou por Nome)
+  function handleFiles(selectedFiles: File[]) {
+    setUploadedFiles(selectedFiles)
 
-    // Agrupa arquivos por CPF
-    const fileMap = new Map<string, File[]>()
-    for (let i = 0; i < selectedFiles.length; i++) {
-      const match = matches[i]
-      if (match.cpf) {
-        const arr = fileMap.get(match.cpf) || []
-        arr.push(selectedFiles[i])
-        fileMap.set(match.cpf, arr)
+    // Mapa de arquivos por CPF
+    const fileByCpf = new Map<string, File[]>()
+    // Arquivos não pareados por CPF
+    const remainingFiles: File[] = []
+
+    for (const file of selectedFiles) {
+      // 1. Tenta extrair CPF inteligente (inclusive se começar com 0 ou se tiver 10 dígitos)
+      const extractedCpf = extractCpfFromString(file.name)
+      if (extractedCpf) {
+        const norm = normalizeCpf(extractedCpf)
+        const arr = fileByCpf.get(norm) || []
+        arr.push(file)
+        fileByCpf.set(norm, arr)
+      } else {
+        remainingFiles.push(file)
       }
     }
 
-    // Associa com os registros da planilha
+    // 2. Para arquivos restantes, tenta parear por Nome do Funcionário
+    for (const file of [...remainingFiles]) {
+      const fileNameClean = cleanText(file.name)
+
+      // Procura algum funcionário da planilha cujo nome esteja contido no nome do arquivo
+      const matchedRow = planilhaData.find(row => {
+        if (!row.employeeName || row.employeeName.length < 3) return false
+        const nameClean = cleanText(row.employeeName)
+        // Se o nome do arquivo contém o nome do funcionário ou as 2 primeiras palavras
+        if (fileNameClean.includes(nameClean)) return true
+        const parts = row.employeeName.trim().split(/\s+/)
+        if (parts.length >= 2) {
+          const firstLast = cleanText(`${parts[0]}${parts[parts.length - 1]}`)
+          if (fileNameClean.includes(firstLast)) return true
+        }
+        return false
+      })
+
+      if (matchedRow && matchedRow.normalizedCpf) {
+        const norm = matchedRow.normalizedCpf
+        const arr = fileByCpf.get(norm) || []
+        arr.push(file)
+        fileByCpf.set(norm, arr)
+        // Remove dos não pareados
+        const idx = remainingFiles.indexOf(file)
+        if (idx !== -1) remainingFiles.splice(idx, 1)
+      }
+    }
+
+    // Constrói a lista de prévia
     const previewItems: PreviewItem[] = []
 
     // Agrupa linhas válidas da planilha por CPF
@@ -175,25 +214,11 @@ export default function ImportacaoPage() {
     }
 
     for (const [cpf, rows] of rowsByCpf.entries()) {
-      const docFiles = fileMap.get(cpf) || []
+      const docFiles = fileByCpf.get(cpf) || []
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i]
         const docFile = docFiles[i] || null
-
-        let fileData: string | undefined
-        let fileMime: string | undefined
-        let fileOriginalName: string | undefined
-
-        if (docFile) {
-          try {
-            fileData = await fileToBase64(docFile)
-            fileMime = docFile.type
-            fileOriginalName = docFile.name
-          } catch (err) {
-            console.error('Erro ao ler arquivo:', err)
-          }
-        }
 
         const isDocMatched = !!docFile
         const itemStatus: PreviewItem['status'] = !isDocMatched
@@ -212,22 +237,20 @@ export default function ImportacaoPage() {
           cidCode: row.cidCode,
           daysOff: row.daysOff,
           fileName: docFile?.name || null,
+          docFile,
           status: itemStatus,
-          errors: isDocMatched ? (row.errors || []) : ['Documento não anexado', ...(row.errors || [])],
+          errors: isDocMatched ? (row.errors || []) : ['Documento não associado', ...(row.errors || [])],
           employeeId: row.employeeId,
           cidId: row.cidId,
           cidDescription: row.cidDescription,
           doctor: row.doctor,
           crm: row.crm,
           observations: row.observations,
-          fileData,
-          fileMime,
-          fileOriginalName,
         })
       }
     }
 
-    // Adiciona linhas que tinham erro na planilha
+    // Adiciona linhas com erro estrutural da planilha
     for (const row of planilhaData.filter(r => r.status === 'ERRO')) {
       previewItems.push({
         rowIndex: row.index,
@@ -239,6 +262,7 @@ export default function ImportacaoPage() {
         cidCode: row.cidCode,
         daysOff: row.daysOff,
         fileName: null,
+        docFile: null,
         status: 'ERRO',
         errors: row.errors,
       })
@@ -246,9 +270,31 @@ export default function ImportacaoPage() {
 
     setPreview(previewItems)
     setStep('confirmar')
+
+    const matchedCount = previewItems.filter(p => p.docFile).length
+    if (selectedFiles.length > 0) {
+      toast(`${matchedCount} arquivo(s) associado(s) automaticamente com sucesso!`, 'success')
+    }
   }
 
-  // ETAPA final: Execução da importação
+  // Atribuição manual de arquivo caso o usuário queira trocar ou associar na tabela
+  function handleManualFileAssign(rowIndex: number, fileName: string) {
+    const file = uploadedFiles.find(f => f.name === fileName) || null
+    setPreview(prev =>
+      prev.map(item => {
+        if (item.rowIndex !== rowIndex) return item
+        return {
+          ...item,
+          docFile: file,
+          fileName: file ? file.name : null,
+          status: file ? (item.status === 'ERRO' ? 'ERRO' : 'OK') : 'SEM_DOCUMENTO',
+          errors: file ? item.errors.filter(e => !e.includes('Documento')) : ['Documento não associado', ...item.errors],
+        }
+      })
+    )
+  }
+
+  // ETAPA 4 -> Final: Converte os arquivos para Base64 apenas na hora de enviar
   async function executeImport() {
     const validRows = preview.filter(p => p.status === 'OK' || p.status === 'SEM_DOCUMENTO' || p.status === 'AVISO')
     if (validRows.length === 0) {
@@ -257,37 +303,58 @@ export default function ImportacaoPage() {
     }
 
     setStep('importando')
-    setProgress(0)
-
-    const rows = validRows.map(r => ({
-      index: r.rowIndex,
-      employeeId: r.employeeId,
-      employeeName: r.employeeName,
-      cpf: r.cpf,
-      cidId: r.cidId,
-      cidDescription: r.cidDescription,
-      doctor: r.doctor,
-      crm: r.crm,
-      certificateDate: r.certificateDate,
-      startDate: r.startDate || r.certificateDate,
-      endDate: r.endDate || r.certificateDate,
-      daysOff: r.daysOff,
-      observations: r.observations,
-      fileName: r.fileName,
-      fileData: r.fileData,
-      fileMime: r.fileMime,
-      fileOriginalName: r.fileOriginalName,
-    }))
-
-    const progressInterval = setInterval(() => {
-      setProgress(prev => Math.min(prev + 3, 90))
-    }, 250)
+    setProgress(5)
 
     try {
+      // Converte apenas os arquivos associados para base64
+      const rowsPayload = await Promise.all(
+        validRows.map(async r => {
+          let fileData: string | undefined
+          let fileMime: string | undefined
+          let fileOriginalName: string | undefined
+
+          if (r.docFile) {
+            try {
+              fileData = await fileToBase64(r.docFile)
+              fileMime = r.docFile.type
+              fileOriginalName = r.docFile.name
+            } catch (err) {
+              console.error(`Erro ao converter ${r.docFile.name}:`, err)
+            }
+          }
+
+          return {
+            index: r.rowIndex,
+            employeeId: r.employeeId,
+            employeeName: r.employeeName,
+            cpf: r.cpf,
+            cidId: r.cidId,
+            cidDescription: r.cidDescription,
+            doctor: r.doctor,
+            crm: r.crm,
+            certificateDate: r.certificateDate,
+            startDate: r.startDate || r.certificateDate,
+            endDate: r.endDate || r.certificateDate,
+            daysOff: r.daysOff,
+            observations: r.observations,
+            fileName: fileOriginalName || r.fileName,
+            fileData,
+            fileMime,
+            fileOriginalName,
+          }
+        })
+      )
+
+      setProgress(40)
+
+      const progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 2, 92))
+      }, 300)
+
       const res = await fetch('/api/imports/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows, spreadsheetName: planilha?.name || 'importacao' }),
+        body: JSON.stringify({ rows: rowsPayload, spreadsheetName: planilha?.name || 'importacao' }),
       })
 
       clearInterval(progressInterval)
@@ -304,8 +371,7 @@ export default function ImportacaoPage() {
         setStep('confirmar')
       }
     } catch {
-      clearInterval(progressInterval)
-      toast('Erro de comunicação com o servidor', 'error')
+      toast('Erro de comunicação com o servidor durante a importação', 'error')
       setStep('confirmar')
     }
   }
@@ -314,8 +380,7 @@ export default function ImportacaoPage() {
     setStep('upload-planilha')
     setPlanilha(null)
     setPlanilhaData([])
-    setFiles([])
-    setFileMatches([])
+    setUploadedFiles([])
     setPreview([])
     setProgress(0)
     setResult(null)
@@ -370,7 +435,7 @@ export default function ImportacaoPage() {
         <div className="card" style={{ maxWidth: 640, margin: '0 auto' }}>
           <h2 style={{ fontWeight: 600, marginBottom: '0.5rem' }}>📊 Passo 1 — Selecione a planilha Excel</h2>
           <p style={{ color: 'hsl(var(--muted-foreground))', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-            A planilha deve conter os cabeçalhos: <code>CPF</code>, <code>DATA_ATESTADO</code>, <code>DIAS_AFASTAMENTO</code>, <code>CID</code>, <code>MEDICO</code>, etc.
+            A planilha deve conter: <code>CPF</code>, <code>DATA_ATESTADO</code>, <code>DIAS_AFASTAMENTO</code>, <code>CID</code>, <code>MEDICO</code>, etc.
           </p>
 
           <div
@@ -411,7 +476,6 @@ export default function ImportacaoPage() {
             }}
           />
 
-          {/* Botões de Download do Modelo */}
           <div style={{ marginTop: '1.75rem', paddingTop: '1.25rem', borderTop: '1px solid hsl(var(--border) / 0.6)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
             <span style={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>Precisa do modelo padrão para preencher?</span>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -524,17 +588,17 @@ export default function ImportacaoPage() {
 
       {/* PASSO 3: Upload de Documentos */}
       {step === 'upload-docs' && (
-        <div className="card" style={{ maxWidth: 640, margin: '0 auto' }}>
+        <div className="card" style={{ maxWidth: 660, margin: '0 auto' }}>
           <h2 style={{ fontWeight: 600, marginBottom: '0.5rem' }}>📁 Passo 3 — Selecione os documentos dos atestados</h2>
           <div className="alert alert-info" style={{ marginBottom: '1.5rem', fontSize: '0.8125rem' }}>
             <div>
-              <strong>Como nomear os arquivos para associação automática:</strong>
-              <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem' }}>
-                <li><code>12345678900.pdf</code> ou <code>123.456.789-00.pdf</code></li>
-                <li><code>ATESTADO_12345678900.jpg</code></li>
-                <li><code>12345678900_01.png</code></li>
+              <strong>O sistema aceita múltiplos formatos de nome:</strong>
+              <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem', lineHeight: 1.6 }}>
+                <li><strong>Por CPF (com ou sem zero inicial):</strong> <code>07234567890.pdf</code> ou <code>7234567890.pdf</code> ou <code>072.345.678-90.pdf</code></li>
+                <li><strong>Com prefixo ou data:</strong> <code>ATESTADO_07234567890.jpg</code> ou <code>2024_07234567890.pdf</code></li>
+                <li><strong>Pelo Nome do Funcionário:</strong> <code>Joao_Silva.pdf</code> ou <code>Atestado Maria Oliveira.pdf</code></li>
               </ul>
-              O sistema detecta automaticamente o CPF no nome do arquivo.
+              <em>Se algum documento não for reconhecido automaticamente, você poderá associá-lo manualmente na próxima etapa!</em>
             </div>
           </div>
 
@@ -553,7 +617,9 @@ export default function ImportacaoPage() {
             <FolderOpen size={48} style={{ margin: '0 auto 1rem', color: 'hsl(var(--primary))' }} />
             <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>SELECIONE OU ARRASTE OS ATESTADOS</p>
             <p style={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.875rem' }}>PDF, JPG, JPEG ou PNG</p>
-            <p style={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem', marginTop: '0.5rem' }}>Você pode selecionar múltiplos arquivos de uma vez</p>
+            <p style={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+              Selecione todos os arquivos da pasta de uma só vez
+            </p>
           </div>
           <input
             ref={filesRef}
@@ -570,13 +636,13 @@ export default function ImportacaoPage() {
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'space-between', marginTop: '1.25rem' }}>
             <button onClick={() => setStep('validar')} className="btn btn-secondary">← Voltar</button>
             <button onClick={() => handleFiles([])} className="btn btn-ghost btn-sm">
-              Pular etapa de documentos (importar apenas dados) →
+              Pular etapa de documentos (importar apenas dados da planilha) →
             </button>
           </div>
         </div>
       )}
 
-      {/* PASSO 4: Prévia e Confirmação */}
+      {/* PASSO 4: Prévia e Confirmação com Atribuição Manual */}
       {step === 'confirmar' && (
         <div>
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -608,7 +674,12 @@ export default function ImportacaoPage() {
 
           <div className="card" style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <h2 style={{ fontWeight: 600 }}>Prévia da Importação</h2>
+              <div>
+                <h2 style={{ fontWeight: 600 }}>Prévia da Importação</h2>
+                <p style={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
+                  {uploadedFiles.length > 0 && `${uploadedFiles.length} arquivo(s) carregados no lote. Você pode associar ou alterar o arquivo de qualquer linha.`}
+                </p>
+              </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 {['all', 'OK', 'SEM_DOCUMENTO', 'ERRO'].map(s => (
                   <button
@@ -621,7 +692,7 @@ export default function ImportacaoPage() {
                 ))}
               </div>
             </div>
-            <div className="table-wrapper" style={{ maxHeight: 420, overflowY: 'auto' }}>
+            <div className="table-wrapper" style={{ maxHeight: 440, overflowY: 'auto' }}>
               <table>
                 <thead>
                   <tr>
@@ -630,7 +701,7 @@ export default function ImportacaoPage() {
                     <th>Data Atestado</th>
                     <th>CID</th>
                     <th>Dias</th>
-                    <th>Arquivo Anexo</th>
+                    <th>Arquivo Anexado</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -638,16 +709,47 @@ export default function ImportacaoPage() {
                   {filteredPreview.map((item, i) => (
                     <tr key={i}>
                       <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{formatCpf(item.cpf)}</td>
-                      <td style={{ fontSize: '0.875rem' }}>{item.employeeName}</td>
+                      <td style={{ fontSize: '0.875rem', fontWeight: 500 }}>{item.employeeName}</td>
                       <td style={{ fontSize: '0.8rem' }}>{item.certificateDate}</td>
                       <td><span className="badge badge-info" style={{ fontSize: '0.7rem' }}>{item.cidCode || '—'}</span></td>
                       <td style={{ textAlign: 'center', fontWeight: 600 }}>{item.daysOff}</td>
-                      <td style={{ fontSize: '0.75rem', color: item.fileName ? 'hsl(142 71% 45%)' : 'hsl(var(--muted-foreground))' }}>
-                        {item.fileName ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <FileText size={13} /> {item.fileName}
-                          </span>
-                        ) : '—'}
+                      <td style={{ minWidth: 200 }}>
+                        {uploadedFiles.length > 0 ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <select
+                              value={item.fileName || ''}
+                              onChange={e => handleManualFileAssign(item.rowIndex, e.target.value)}
+                              className="form-input"
+                              style={{
+                                fontSize: '0.75rem',
+                                padding: '0.25rem 0.5rem',
+                                height: 30,
+                                background: item.fileName ? 'hsl(142 71% 45% / 0.08)' : 'hsl(var(--card))',
+                                borderColor: item.fileName ? 'hsl(142 71% 45% / 0.4)' : 'hsl(var(--border))',
+                              }}
+                            >
+                              <option value="">— Sem anexo —</option>
+                              {uploadedFiles.map(f => (
+                                <option key={f.name} value={f.name}>
+                                  {f.name}
+                                </option>
+                              ))}
+                            </select>
+                            {item.fileName && (
+                              <button
+                                type="button"
+                                onClick={() => handleManualFileAssign(item.rowIndex, '')}
+                                className="btn btn-ghost btn-icon btn-sm"
+                                title="Desvincular arquivo"
+                                style={{ width: 24, height: 24, padding: 0 }}
+                              >
+                                <X size={13} />
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>Nenhum documento enviado</span>
+                        )}
                       </td>
                       <td>
                         <span className={`badge ${STATUS_CLASS[item.status]}`} style={{ fontSize: '0.7rem' }}>
@@ -662,7 +764,7 @@ export default function ImportacaoPage() {
           </div>
 
           <div className="alert alert-info" style={{ marginBottom: '1.25rem' }}>
-            Pronto para importar <strong>{totalReady}</strong> atestado(s). Registros com erro ({errorCount}) serão desconsiderados.
+            Pronto para importar <strong>{totalReady}</strong> atestado(s). Registros com erro ({errorCount}) serão ignorados.
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'space-between', alignItems: 'center' }}>
