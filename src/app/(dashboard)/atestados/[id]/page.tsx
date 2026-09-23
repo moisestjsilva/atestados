@@ -14,6 +14,7 @@ import { toast } from '@/components/ui/toaster'
 import { useSession } from 'next-auth/react'
 import { can } from '@/lib/permissions'
 import { UserRole } from '@prisma/client'
+import { ModalPortal } from '@/components/ui/modal-portal'
 
 interface CertificateDetails {
   id: string
@@ -457,7 +458,8 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
 
       {/* Edit Modal */}
       {showEditModal && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600 }}>Editar Atestado</h3>
@@ -550,11 +552,13 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600, color: 'hsl(var(--destructive))' }}>⚠️ Excluir Atestado</h3>
@@ -578,6 +582,7 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   )

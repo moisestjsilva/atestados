@@ -14,6 +14,7 @@ import { toast } from '@/components/ui/toaster'
 import { useSession } from 'next-auth/react'
 import { can } from '@/lib/permissions'
 import { UserRole } from '@prisma/client'
+import { ModalPortal } from '@/components/ui/modal-portal'
 
 interface EmployeeDetails {
   id: string
@@ -453,7 +454,8 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
 
       {/* Edit Employee Modal */}
       {showEditModal && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600 }}>Editar Funcionário</h3>
@@ -555,11 +557,13 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Delete/Deactivate Confirmation Modal */}
       {showDeleteModal && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600, color: 'hsl(var(--destructive))' }}>
@@ -591,11 +595,13 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Fast Register Certificate Modal for this employee */}
       {showCertModal && (
-        <div className="modal-overlay" onClick={() => setShowCertModal(false)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowCertModal(false)}>
           <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600 }}>Novo Atestado para {employee.name}</h3>
@@ -710,6 +716,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   )

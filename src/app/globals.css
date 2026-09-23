@@ -71,8 +71,12 @@ body {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.95) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 @keyframes slideIn {
   from { transform: translateX(-100%); }
@@ -85,7 +89,7 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes progress { from { width: 0; } }
 
-.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+.animate-fade-in { animation: fadeIn 0.25s ease-out forwards; }
 .animate-slide-in { animation: slideIn 0.3s ease-out forwards; }
 .animate-spin { animation: spin 1s linear infinite; }
 
@@ -292,16 +296,37 @@ select.form-input { cursor: pointer; }
 
 /* Modals */
 .modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100; padding: 1rem; backdrop-filter: blur(4px);
-  animation: fadeIn 0.15s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 1.5rem;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  overflow-y: auto;
+  animation: fadeIn 0.15s ease-out;
 }
 .modal {
-  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
-  border-radius: 16px; max-width: 600px; width: 100%;
-  max-height: 90vh; overflow-y: auto;
-  animation: fadeIn 0.2s ease;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  margin: auto;
+  position: relative;
+  z-index: 100000;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .modal-lg { max-width: 900px; }
 .modal-xl { max-width: 1100px; }
@@ -490,7 +515,7 @@ select.form-input { cursor: pointer; }
 }
 [data-theme="light"] .modal-overlay,
 .light .modal-overlay {
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 23, 42, 0.6);
 }
 
 [data-theme="light"] .auth-page,

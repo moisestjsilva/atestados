@@ -13,6 +13,7 @@ import {
   CheckCircle, User, AlertCircle
 } from 'lucide-react'
 import Link from 'next/link'
+import { ModalPortal } from '@/components/ui/modal-portal'
 
 interface Certificate {
   id: string
@@ -459,7 +460,8 @@ export default function AtestadosPage() {
 
       {/* Modal Cadastro/Edição de Atestado */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600 }}>{editId ? 'Editar Atestado' : 'Novo Atestado'}</h3>
@@ -688,11 +690,13 @@ export default function AtestadosPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Delete Confirm */}
       {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600, color: 'hsl(var(--destructive))' }}>⚠️ Excluir atestado</h3>
@@ -709,6 +713,7 @@ export default function AtestadosPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   )

@@ -6,6 +6,7 @@ import { can } from '@/lib/permissions'
 import { UserRole } from '@prisma/client'
 import { toast } from '@/components/ui/toaster'
 import { Plus, Search, Edit, Trash2, Loader2, Stethoscope, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ModalPortal } from '@/components/ui/modal-portal'
 
 interface CidCode { id: string; code: string; description: string; status: string }
 
@@ -142,7 +143,8 @@ export default function CidPage() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600 }}>{editId ? 'Editar CID' : 'Novo CID'}</h3>
@@ -175,10 +177,12 @@ export default function CidPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600 }}>Excluir CID</h3>
@@ -194,6 +198,7 @@ export default function CidPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   )

@@ -6,6 +6,7 @@ import { can } from '@/lib/permissions'
 import { UserRole } from '@prisma/client'
 import { toast } from '@/components/ui/toaster'
 import { Plus, Edit, Trash2, Loader2, Building2, X } from 'lucide-react'
+import { ModalPortal } from '@/components/ui/modal-portal'
 
 interface Department {
   id: string; code: string; name: string; status: string
@@ -128,7 +129,8 @@ export default function SetoresPage() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600 }}>{editId ? 'Editar Setor' : 'Novo Setor'}</h3>
@@ -161,10 +163,12 @@ export default function SetoresPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600, color: 'hsl(var(--destructive))' }}>⚠️ Excluir Setor</h3>
@@ -186,6 +190,7 @@ export default function SetoresPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   )

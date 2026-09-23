@@ -6,6 +6,7 @@ import { UserRole, UserStatus } from '@prisma/client'
 import { formatDateTime, getInitials } from '@/lib/utils'
 import { toast } from '@/components/ui/toaster'
 import { Plus, X, Loader2, CheckCircle, XCircle, Ban, UserCog, ChevronLeft, ChevronRight, Edit } from 'lucide-react'
+import { ModalPortal } from '@/components/ui/modal-portal'
 
 interface User {
   id: string
@@ -219,7 +220,8 @@ export default function UsuariosPage() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600 }}>Novo Usuário</h3>
@@ -257,6 +259,7 @@ export default function UsuariosPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   )

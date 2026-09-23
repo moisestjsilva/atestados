@@ -11,6 +11,7 @@ import {
   Edit, Trash2, Loader2, Users, Upload, Download, X
 } from 'lucide-react'
 import Link from 'next/link'
+import { ModalPortal } from '@/components/ui/modal-portal'
 
 interface Employee {
   id: string
@@ -227,7 +228,8 @@ export default function FuncionariosPage() {
 
       {/* Modal Cadastro/Edição */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600 }}>{editId ? 'Editar Funcionário' : 'Novo Funcionário'}</h3>
@@ -279,11 +281,13 @@ export default function FuncionariosPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Delete Confirm Modal */}
       {deleteTarget && (
-        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="modal" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600, color: 'hsl(var(--destructive))' }}>⚠️ Confirmar exclusão</h3>
@@ -305,6 +309,7 @@ export default function FuncionariosPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   )
