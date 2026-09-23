@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { ModalPortal } from '@/components/ui/modal-portal'
+import { CidAutocomplete } from '@/components/ui/cid-autocomplete'
 
 interface Certificate {
   id: string
@@ -60,6 +61,7 @@ export default function AtestadosPage() {
 
   const [showModal, setShowModal] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [editingCert, setEditingCert] = useState<Certificate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Certificate | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -188,6 +190,7 @@ export default function AtestadosPage() {
 
   function openNew() {
     setEditId(null)
+    setEditingCert(null)
     setSelectedEmployee(null)
     setEmpSearch('')
     setCidSearch('')
@@ -210,6 +213,7 @@ export default function AtestadosPage() {
 
   function openEdit(cert: Certificate) {
     setEditId(cert.id)
+    setEditingCert(cert)
     setSelectedEmployee(cert.employee)
     setEmpSearch(cert.employee.name)
     setCidSearch(cert.cid ? `${cert.cid.code} - ${cert.cid.description}` : (cert.cidDescription || ''))
@@ -599,30 +603,22 @@ export default function AtestadosPage() {
                 </div>
 
                 {/* CID Autocomplete */}
-                <div className="form-group" style={{ gridColumn: '1 / -1', position: 'relative' }}>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">CID (Código ou Diagnóstico)</label>
-                  <input
-                    type="text"
-                    value={cidSearch}
-                    onChange={e => { setCidSearch(e.target.value); setForm(f => ({ ...f, cidDescription: e.target.value })) }}
-                    placeholder="Pesquisar por código (ex: M54.5) ou descrição..."
-                    className="form-input"
+                  <CidAutocomplete
+                    key={editId || 'new'}
+                    initialCidId={form.cidId}
+                    initialCode={editingCert?.cid?.code}
+                    initialDescription={form.cidDescription}
+                    onSelect={(cid, text) => {
+                      setForm(f => ({
+                        ...f,
+                        cidId: cid ? cid.id : '',
+                        cidDescription: cid ? cid.description : text,
+                      }))
+                    }}
                   />
-                  {cids.length > 0 && (
-                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, zIndex: 20, maxHeight: 180, overflowY: 'auto', marginTop: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-                      {cids.map(cid => (
-                        <div
-                          key={cid.id}
-                          onClick={() => selectCid(cid)}
-                          style={{ padding: '0.6rem 1rem', cursor: 'pointer', borderBottom: '1px solid hsl(var(--border) / 0.5)', fontSize: '0.85rem' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'hsl(var(--secondary))'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >
-                          <strong style={{ color: 'hsl(var(--primary))' }}>{cid.code}</strong> — {cid.description}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <span className="form-hint">Digite o código (ex: M54.5, J06, F41) ou o diagnóstico da doença para autocompletar</span>
                 </div>
 
                 <div className="form-group">

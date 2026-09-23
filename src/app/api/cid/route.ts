@@ -12,17 +12,28 @@ export async function GET(req: NextRequest) {
   if (!can(user.role, 'cid:view')) return apiError('Sem permissão', 403)
 
   const { searchParams } = new URL(req.url)
-  const search = searchParams.get('search') || ''
+  const rawSearch = (searchParams.get('search') || '').trim()
   const page = parseInt(searchParams.get('page') || '1')
   const limit = parseInt(searchParams.get('limit') || '20')
   const all = searchParams.get('all') === 'true'
 
+  // Variações de código (ex: "M545" -> "M54.5" e vice-versa)
+  const cleanUpper = rawSearch.toUpperCase().replace(/\s+/g, ' ')
+  const codeVariations = [cleanUpper]
+  if (cleanUpper.length >= 4 && !cleanUpper.includes('.')) {
+    codeVariations.push(`${cleanUpper.slice(0, 3)}.${cleanUpper.slice(3)}`)
+  }
+  const withoutDot = cleanUpper.replace(/\./g, '')
+  if (withoutDot !== cleanUpper) {
+    codeVariations.push(withoutDot)
+  }
+
+  const orConditions: any[] = codeVariations.map(c => ({ code: { contains: c } }))
+  orConditions.push({ description: { contains: rawSearch } })
+
   const where = {
-    ...(search && {
-      OR: [
-        { code: { contains: search.toUpperCase() } },
-        { description: { contains: search, mode: 'insensitive' as const } },
-      ],
+    ...(rawSearch && {
+      OR: orConditions,
     }),
   }
 
@@ -31,7 +42,7 @@ export async function GET(req: NextRequest) {
       where: { ...where, status: 'ATIVO' },
       select: { id: true, code: true, description: true },
       orderBy: { code: 'asc' },
-      take: 50,
+      take: 40,
     })
     return NextResponse.json({ cids })
   }

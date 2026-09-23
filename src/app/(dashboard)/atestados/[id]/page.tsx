@@ -16,6 +16,7 @@ import { useSession } from 'next-auth/react'
 import { can } from '@/lib/permissions'
 import { UserRole } from '@prisma/client'
 import { ModalPortal } from '@/components/ui/modal-portal'
+import { CidAutocomplete } from '@/components/ui/cid-autocomplete'
 
 interface CertificateDetails {
   id: string
@@ -83,6 +84,7 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
     endDate: '',
     daysOff: 1,
     observations: '',
+    cidId: '',
     cidDescription: '',
   })
 
@@ -121,7 +123,8 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
           endDate: data.endDate ? data.endDate.split('T')[0] : '',
           daysOff: data.daysOff || 1,
           observations: data.observations || '',
-          cidDescription: data.cidDescription || '',
+          cidId: data.cid?.id || '',
+          cidDescription: data.cid ? `${data.cid.code} - ${data.cid.description}` : (data.cidDescription || ''),
         })
       } catch (err: any) {
         setError(err.message || 'Erro ao carregar atestado')
@@ -639,6 +642,24 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
                       className="form-input"
                     />
                   </div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="form-label">CID (Código ou Diagnóstico)</label>
+                    <CidAutocomplete
+                      key={cert.id}
+                      initialCidId={editForm.cidId}
+                      initialCode={cert.cid?.code}
+                      initialDescription={editForm.cidDescription}
+                      onSelect={(cid, text) => {
+                        setEditForm(f => ({
+                          ...f,
+                          cidId: cid ? cid.id : '',
+                          cidDescription: cid ? cid.description : text,
+                        }))
+                      }}
+                    />
+                    <span className="form-hint">Digite o código ou nome para alterar o CID deste atestado</span>
+                  </div>
+
                   <div className="form-group">
                     <label className="form-label">Médico</label>
                     <input

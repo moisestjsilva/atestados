@@ -15,6 +15,7 @@ import { useSession } from 'next-auth/react'
 import { can } from '@/lib/permissions'
 import { UserRole } from '@prisma/client'
 import { ModalPortal } from '@/components/ui/modal-portal'
+import { CidAutocomplete } from '@/components/ui/cid-autocomplete'
 
 interface EmployeeDetails {
   id: string
@@ -93,6 +94,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     daysOff: 1,
     doctor: '',
     crm: '',
+    cidId: '',
     cidDescription: '',
     observations: '',
   })
@@ -209,6 +211,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
           daysOff: 1,
           doctor: '',
           crm: '',
+          cidId: '',
           cidDescription: '',
           observations: '',
         })
@@ -683,14 +686,20 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
                   </div>
 
                   <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label className="form-label">Diagnóstico / CID Resumo</label>
-                    <input
-                      type="text"
-                      value={certForm.cidDescription}
-                      onChange={e => setCertForm(f => ({ ...f, cidDescription: e.target.value }))}
-                      className="form-input"
-                      placeholder="Ex: J06.9 ou Infecção das vias aéreas"
+                    <label className="form-label">CID (Código ou Diagnóstico)</label>
+                    <CidAutocomplete
+                      key={showCertModal ? 'open' : 'closed'}
+                      initialCidId={certForm.cidId}
+                      initialDescription={certForm.cidDescription}
+                      onSelect={(cid, text) => {
+                        setCertForm(f => ({
+                          ...f,
+                          cidId: cid ? cid.id : '',
+                          cidDescription: cid ? cid.description : text,
+                        }))
+                      }}
                     />
+                    <span className="form-hint">Digite o código (ex: M54.5, J06, F41) ou o diagnóstico da doença</span>
                   </div>
 
                   <div className="form-group" style={{ gridColumn: '1 / -1' }}>
