@@ -65,15 +65,16 @@ export async function GET(req: NextRequest) {
 
 const createSchema = z.object({
   employeeId: z.string().min(1, 'Funcionário obrigatório'),
-  cidId: z.string().optional(),
-  cidDescription: z.string().optional(),
-  doctor: z.string().optional(),
-  crm: z.string().optional(),
+  cidId: z.string().optional().nullable(),
+  cidDescription: z.string().optional().nullable(),
+  doctor: z.string().optional().nullable(),
+  crm: z.string().optional().nullable(),
   certificateDate: z.string().min(1, 'Data do atestado obrigatória'),
-  startDate: z.string().min(1, 'Data inicial obrigatória'),
-  endDate: z.string().min(1, 'Data final obrigatória'),
-  daysOff: z.number().min(1, 'Mínimo 1 dia'),
-  observations: z.string().optional(),
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
+  daysOff: z.number().min(1, 'Mínimo 1 dia').optional(),
+  observations: z.string().optional().nullable(),
+  fileId: z.string().optional().nullable(),
 })
 
 export async function POST(req: NextRequest) {
@@ -83,48 +84,67 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
-  if (!parsed.success) return apiError(parsed.error.errors[0].message)
+  if (!parsed.success) {
+    const msg = (parsed.error as any).issues?.[0]?.message || 'Dados inválidos'
+    return apiError(msg)
+  }
 
-  const { employeeId, cidId, cidDescription, doctor, crm, certificateDate, startDate, endDate, daysOff, observations } = parsed.data
+  const { employeeId, cidId, cidDescription, doctor, crm, certificateDate, observations, fileId } = parsed.data
+  let { startDate, endDate, daysOff } = parsed.data
 
   const employee = await prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null } })
   if (!employee) return apiError('Funcionário não encontrado')
+
+  // Se startDate não foi informada, usa a certificateDate
+  if (!startDate) startDate = certificateDate
+
+  // Se dias não foi informado, default 1
+  const days = daysOff && daysOff > 0 ? daysOff : 1
+
+  // Se endDate não foi informada, calcula a partir de startDate + (days - 1)
+  if (!endDate) {
+    const s = new Date(startDate)
+    s.setDate(s.getDate() + (days - 1))
+    endDate = s.toISOString().split('T')[0]
+  }
 
   const start = new Date(startDate)
   const end = new Date(endDate)
   if (end < start) return apiError('Data final não pode ser anterior à data inicial')
 
   const calculatedDays = daysBetween(start, end)
+  const finalDays = daysOff && daysOff > 0 ? daysOff : calculatedDays
 
-  // Verifica duplicidade
+  // Verifica duplicidade exata
   const dup = await prisma.medicalCertificate.findFirst({
     where: {
       employeeId,
       startDate: start,
       endDate: end,
       status: 'ATIVO',
-      ...(cidId && { cidId }),
     },
   })
-  if (dup) return apiError('Possível atestado duplicado detectado. Verifique o histórico do funcionário.')
+  if (dup) return apiError('Já existe um atestado ativo cadastrado para este funcionário no mesmo período.')
 
   const cert = await prisma.medicalCertificate.create({
     data: {
       employeeId,
-      cidId: cidId || null,
+      cidId: cidId && cidId.trim() !== '' ? cidId : null,
       cidDescription: cidDescription || null,
       doctor: doctor || null,
       crm: crm || null,
       certificateDate: new Date(certificateDate),
       startDate: start,
       endDate: end,
-      daysOff: daysOff || calculatedDays,
+      daysOff: finalDays,
       observations: observations || null,
       registeredById: user.id,
+      ...(fileId ? { files: { connect: { id: fileId } } } : {}),
     },
     include: {
       employee: { select: { name: true, cpf: true } },
       cid: { select: { code: true, description: true } },
+      files: true,
     },
   })
 

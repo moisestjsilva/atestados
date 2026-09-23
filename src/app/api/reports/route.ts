@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
 
     await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.RELATORIO_EXPORTADO, resource: 'reports', details: { type, format, total: certificates.length } })
 
-    return new NextResponse(buffer as Buffer, {
+    return new NextResponse(buffer as any, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename="relatorio-atestados-${new Date().toISOString().slice(0, 10)}.xlsx"`,

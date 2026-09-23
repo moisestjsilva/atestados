@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, FileText, Lock, Mail, Loader2, Shield } from 'lucide-react'
+import { Eye, EyeOff, FileText, Lock, Mail, Loader2 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -122,16 +122,6 @@ function LoginForm() {
             </Link>
           </div>
         </form>
-
-        <div style={{ marginTop: '1.5rem', padding: '0.875rem', background: 'hsl(var(--secondary))', borderRadius: 10, fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <Shield size={14} />
-            <strong>Dados de demonstração</strong>
-          </div>
-          <div>superadmin@demo.com / Demo@123</div>
-          <div>admin@demo.com / Demo@123</div>
-          <div>consultor@demo.com / Demo@123</div>
-        </div>
       </div>
     </div>
   )

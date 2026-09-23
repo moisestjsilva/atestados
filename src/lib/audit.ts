@@ -20,7 +20,7 @@ export async function createAuditLog(params: AuditParams) {
         action: params.action,
         resource: params.resource,
         resourceId: params.resourceId,
-        details: params.details,
+        details: (params.details as any) ?? undefined,
         ipAddress: params.ipAddress,
       },
     })

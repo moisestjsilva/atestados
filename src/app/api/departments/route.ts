@@ -67,7 +67,9 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
-  if (!parsed.success) return apiError(parsed.error.errors[0].message)
+  if (!parsed.success) {
+    return apiError((parsed.error as any).issues?.[0]?.message || 'Dados inválidos')
+  }
 
   const { code, name, status } = parsed.data
   const existing = await prisma.department.findUnique({ where: { code: code.toUpperCase() } })

@@ -15,12 +15,13 @@ const updateSchema = z.object({
   password: z.string().min(6).optional(),
 })
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getSessionUser()
   if (!user) return apiError('Não autenticado', 401)
   if (!can(user.role, 'users:edit')) return apiError('Sem permissão', 403)
 
-  const target = await prisma.user.findUnique({ where: { id: params.id } })
+  const target = await prisma.user.findUnique({ where: { id } })
   if (!target) return apiError('Usuário não encontrado', 404)
 
   // Protege Super Admin de ser editado por não-Super Admin
@@ -30,7 +31,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const body = await req.json()
   const parsed = updateSchema.safeParse(body)
-  if (!parsed.success) return apiError(parsed.error.errors[0].message)
+  if (!parsed.success) {
+    const msg = (parsed.error as any).issues?.[0]?.message || 'Dados inválidos'
+    return apiError(msg)
+  }
 
   const { name, role, status, password } = parsed.data
 
@@ -46,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (password) updateData.password = await bcrypt.hash(password, 12)
 
   const updated = await prisma.user.update({
-    where: { id: params.id },
+    where: { id },
     data: updateData,
     select: { id: true, name: true, email: true, role: true, status: true },
   })
@@ -59,25 +63,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     ? AUDIT_ACTIONS.USUARIO_RECUSADO
     : AUDIT_ACTIONS.USUARIO_EDITADO
 
-  await createAuditLog({ userId: user.id, userName: user.name, action, resource: 'users', resourceId: params.id, details: updateData })
+  await createAuditLog({ userId: user.id, userName: user.name, action, resource: 'users', resourceId: id, details: updateData })
 
   return NextResponse.json(updated)
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getSessionUser()
   if (!user) return apiError('Não autenticado', 401)
   if (user.role !== 'SUPER_ADMIN') return apiError('Sem permissão', 403)
-  if (user.id === params.id) return apiError('Você não pode excluir sua própria conta')
+  if (user.id === id) return apiError('Você não pode excluir sua própria conta')
 
-  const target = await prisma.user.findUnique({ where: { id: params.id } })
+  const target = await prisma.user.findUnique({ where: { id } })
   if (!target) return apiError('Usuário não encontrado', 404)
-  if (target.role === 'SUPER_ADMIN' && user.id !== params.id) {
+  if (target.role === 'SUPER_ADMIN' && user.id !== id) {
     return apiError('Não é possível excluir outro Super Admin')
   }
 
-  await prisma.user.delete({ where: { id: params.id } })
-  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.USUARIO_EXCLUIDO, resource: 'users', resourceId: params.id, details: { name: target.name } })
+  await prisma.user.delete({ where: { id } })
+  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.USUARIO_EXCLUIDO, resource: 'users', resourceId: id, details: { name: target.name } })
 
   return NextResponse.json({ message: 'Usuário excluído' })
 }

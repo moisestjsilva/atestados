@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const parsed = schema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 })
+      const msg = (parsed.error as any).issues?.[0]?.message || 'Dados inválidos'
+      return NextResponse.json({ error: msg }, { status: 400 })
     }
 
     const { name, email, password } = parsed.data

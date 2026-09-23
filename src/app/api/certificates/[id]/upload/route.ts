@@ -6,13 +6,14 @@ import { can } from '@/lib/permissions'
 import { validateFile, saveFile } from '@/lib/upload'
 import { createAuditLog, AUDIT_ACTIONS } from '@/lib/audit'
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getSessionUser()
   if (!user) return apiError('Não autenticado', 401)
   if (!can(user.role, 'files:upload')) return apiError('Sem permissão', 403)
 
   const cert = await prisma.medicalCertificate.findFirst({
-    where: { id: params.id, status: 'ATIVO' },
+    where: { id, status: 'ATIVO' },
     include: { employee: { select: { cpf: true } } },
   })
   if (!cert) return apiError('Atestado não encontrado', 404)
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const certFile = await prisma.certificateFile.create({
     data: {
-      certificateId: params.id,
+      certificateId: id,
       originalName: saved.originalName,
       storedName: saved.storedName,
       filePath: saved.filePath,
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   })
 
-  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.DOCUMENTO_ENVIADO, resource: 'certificates', resourceId: params.id, details: { fileName: originalName } })
+  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.DOCUMENTO_ENVIADO, resource: 'certificates', resourceId: id, details: { fileName: originalName } })
 
   return NextResponse.json(certFile, { status: 201 })
 }

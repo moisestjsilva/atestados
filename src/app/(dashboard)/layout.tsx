@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
+import { Topbar } from '@/components/layout/topbar'
 import { prisma } from '@/lib/prisma'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="app-layout">
       <Sidebar pendingUsers={pendingUsers} />
       <main className="main-content">
+        <Topbar />
         {children}
       </main>
     </div>

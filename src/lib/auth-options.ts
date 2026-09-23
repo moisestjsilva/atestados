@@ -3,7 +3,7 @@ import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
-import { UserStatus } from '@prisma/client'
+import { UserStatus, UserRole } from '@prisma/client'
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -61,14 +61,14 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = (user as { role: string }).role
+        token.role = (user as { role: UserRole }).role
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role as string
+        session.user.role = token.role as UserRole
       }
       return session
     },

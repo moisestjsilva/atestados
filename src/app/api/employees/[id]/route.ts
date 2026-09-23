@@ -7,13 +7,14 @@ import { createAuditLog, AUDIT_ACTIONS } from '@/lib/audit'
 import { normalizeCpf, isValidCpf } from '@/lib/utils'
 import { z } from 'zod'
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getSessionUser()
   if (!user) return apiError('Não autenticado', 401)
   if (!can(user.role, 'employees:view')) return apiError('Sem permissão', 403)
 
   const employee = await prisma.employee.findFirst({
-    where: { id: params.id, deletedAt: null },
+    where: { id, deletedAt: null },
     include: {
       department: true,
       certificates: {
@@ -39,17 +40,21 @@ const updateSchema = z.object({
   status: z.enum(['ATIVO', 'INATIVO']).optional(),
 })
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getSessionUser()
   if (!user) return apiError('Não autenticado', 401)
   if (!can(user.role, 'employees:edit')) return apiError('Sem permissão', 403)
 
-  const employee = await prisma.employee.findFirst({ where: { id: params.id, deletedAt: null } })
+  const employee = await prisma.employee.findFirst({ where: { id, deletedAt: null } })
   if (!employee) return apiError('Funcionário não encontrado', 404)
 
   const body = await req.json()
   const parsed = updateSchema.safeParse(body)
-  if (!parsed.success) return apiError(parsed.error.errors[0].message)
+  if (!parsed.success) {
+    const msg = (parsed.error as any).issues?.[0]?.message || 'Dados inválidos'
+    return apiError(msg)
+  }
 
   const data = parsed.data
   if (data.cpf) {
@@ -57,7 +62,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!isValidCpf(normalized)) return apiError('CPF inválido')
     // Verifica duplicidade excluindo o atual
     const dup = await prisma.employee.findFirst({
-      where: { cpf: normalized, deletedAt: null, NOT: { id: params.id } },
+      where: { cpf: normalized, deletedAt: null, NOT: { id } },
     })
     if (dup) return apiError('CPF já cadastrado para outro funcionário')
     data.cpf = normalized
@@ -73,35 +78,36 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (data.birthDate !== undefined) updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null
   if (data.admissionDate !== undefined) updateData.admissionDate = data.admissionDate ? new Date(data.admissionDate) : null
 
-  const updated = await prisma.employee.update({ where: { id: params.id }, data: updateData, include: { department: true } })
-  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.FUNCIONARIO_EDITADO, resource: 'employees', resourceId: params.id, details: updateData })
+  const updated = await prisma.employee.update({ where: { id }, data: updateData, include: { department: true } })
+  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.FUNCIONARIO_EDITADO, resource: 'employees', resourceId: id, details: updateData })
 
   return NextResponse.json(updated)
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getSessionUser()
   if (!user) return apiError('Não autenticado', 401)
   if (!can(user.role, 'employees:delete')) return apiError('Sem permissão', 403)
 
-  const employee = await prisma.employee.findFirst({ where: { id: params.id, deletedAt: null } })
+  const employee = await prisma.employee.findFirst({ where: { id, deletedAt: null } })
   if (!employee) return apiError('Funcionário não encontrado', 404)
 
-  const certCount = await prisma.medicalCertificate.count({ where: { employeeId: params.id, status: 'ATIVO' } })
+  const certCount = await prisma.medicalCertificate.count({ where: { employeeId: id, status: 'ATIVO' } })
 
   if (certCount > 0) {
     // Exclusão lógica - inativa o funcionário
     await prisma.employee.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: 'INATIVO', deletedAt: new Date() },
     })
-    await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.FUNCIONARIO_INATIVADO, resource: 'employees', resourceId: params.id, details: { name: employee.name, reason: 'possui atestados' } })
+    await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.FUNCIONARIO_INATIVADO, resource: 'employees', resourceId: id, details: { name: employee.name, reason: 'possui atestados' } })
     return NextResponse.json({ message: 'Funcionário inativado (possui histórico de atestados)', softDeleted: true })
   }
 
   // Exclusão física (sem histórico)
-  await prisma.employee.delete({ where: { id: params.id } })
-  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.FUNCIONARIO_EXCLUIDO, resource: 'employees', resourceId: params.id, details: { name: employee.name } })
+  await prisma.employee.delete({ where: { id } })
+  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.FUNCIONARIO_EXCLUIDO, resource: 'employees', resourceId: id, details: { name: employee.name } })
 
   return NextResponse.json({ message: 'Funcionário excluído', softDeleted: false })
 }

@@ -62,7 +62,9 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const parsed = schema.safeParse(body)
-  if (!parsed.success) return apiError(parsed.error.errors[0].message)
+  if (!parsed.success) {
+    return apiError((parsed.error as any).issues?.[0]?.message || 'Dados inválidos')
+  }
 
   const { code, description, status } = parsed.data
   const codeNorm = code.toUpperCase().trim()

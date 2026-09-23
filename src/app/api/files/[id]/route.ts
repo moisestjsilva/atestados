@@ -7,12 +7,13 @@ import { can } from '@/lib/permissions'
 import { readFile } from '@/lib/upload'
 import { createAuditLog, AUDIT_ACTIONS } from '@/lib/audit'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getSessionUser()
   if (!user) return apiError('Não autenticado', 401)
   if (!can(user.role, 'files:view')) return apiError('Sem permissão', 403)
 
-  const file = await prisma.certificateFile.findUnique({ where: { id: params.id } })
+  const file = await prisma.certificateFile.findUnique({ where: { id } })
   if (!file) return apiError('Arquivo não encontrado', 404)
 
   const buffer = readFile(file.filePath)
@@ -21,12 +22,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const download = req.nextUrl.searchParams.get('download') === 'true'
 
   if (download) {
-    await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.DOCUMENTO_BAIXADO, resource: 'files', resourceId: params.id, details: { fileName: file.originalName } })
+    await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.DOCUMENTO_BAIXADO, resource: 'files', resourceId: id, details: { fileName: file.originalName } })
   } else {
-    await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.DOCUMENTO_VISUALIZADO, resource: 'files', resourceId: params.id, details: { fileName: file.originalName } })
+    await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.DOCUMENTO_VISUALIZADO, resource: 'files', resourceId: id, details: { fileName: file.originalName } })
   }
 
-  return new NextResponse(buffer, {
+  return new NextResponse(buffer as any, {
     headers: {
       'Content-Type': file.mimeType,
       'Content-Length': String(buffer.length),
@@ -39,15 +40,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getSessionUser()
   if (!user) return apiError('Não autenticado', 401)
   if (!can(user.role, 'files:upload')) return apiError('Sem permissão', 403)
 
-  const file = await prisma.certificateFile.findUnique({ where: { id: params.id } })
+  const file = await prisma.certificateFile.findUnique({ where: { id } })
   if (!file) return apiError('Arquivo não encontrado', 404)
 
-  await prisma.certificateFile.delete({ where: { id: params.id } })
+  await prisma.certificateFile.delete({ where: { id } })
 
   return NextResponse.json({ message: 'Arquivo removido' })
 }

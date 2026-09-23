@@ -6,13 +6,14 @@ import { can } from '@/lib/permissions'
 import { createAuditLog, AUDIT_ACTIONS } from '@/lib/audit'
 import { z } from 'zod'
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getSessionUser()
   if (!user) return apiError('Não autenticado', 401)
   if (!can(user.role, 'certificates:view')) return apiError('Sem permissão', 403)
 
   const cert = await prisma.medicalCertificate.findFirst({
-    where: { id: params.id, status: 'ATIVO' },
+    where: { id, status: 'ATIVO' },
     include: {
       employee: { include: { department: true } },
       cid: true,
@@ -37,17 +38,21 @@ const updateSchema = z.object({
   observations: z.string().optional().nullable(),
 })
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getSessionUser()
   if (!user) return apiError('Não autenticado', 401)
   if (!can(user.role, 'certificates:edit')) return apiError('Sem permissão', 403)
 
-  const cert = await prisma.medicalCertificate.findFirst({ where: { id: params.id, status: 'ATIVO' } })
+  const cert = await prisma.medicalCertificate.findFirst({ where: { id, status: 'ATIVO' } })
   if (!cert) return apiError('Atestado não encontrado', 404)
 
   const body = await req.json()
   const parsed = updateSchema.safeParse(body)
-  if (!parsed.success) return apiError(parsed.error.errors[0].message)
+  if (!parsed.success) {
+    const msg = (parsed.error as any).issues?.[0]?.message || 'Dados inválidos'
+    return apiError(msg)
+  }
 
   const data: Record<string, unknown> = {}
   const p = parsed.data
@@ -62,31 +67,32 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (p.observations !== undefined) data.observations = p.observations
 
   const updated = await prisma.medicalCertificate.update({
-    where: { id: params.id },
+    where: { id },
     data,
     include: { employee: { select: { name: true } }, cid: { select: { code: true } } },
   })
 
-  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.ATESTADO_EDITADO, resource: 'certificates', resourceId: params.id, details: data })
+  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.ATESTADO_EDITADO, resource: 'certificates', resourceId: id, details: data })
 
   return NextResponse.json(updated)
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params
   const user = await getSessionUser()
   if (!user) return apiError('Não autenticado', 401)
   if (!can(user.role, 'certificates:delete')) return apiError('Sem permissão', 403)
 
-  const cert = await prisma.medicalCertificate.findFirst({ where: { id: params.id, status: 'ATIVO' } })
+  const cert = await prisma.medicalCertificate.findFirst({ where: { id, status: 'ATIVO' } })
   if (!cert) return apiError('Atestado não encontrado', 404)
 
   // Exclusão lógica
   await prisma.medicalCertificate.update({
-    where: { id: params.id },
+    where: { id },
     data: { status: 'EXCLUIDO', deletedAt: new Date() },
   })
 
-  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.ATESTADO_EXCLUIDO, resource: 'certificates', resourceId: params.id, details: { employeeId: cert.employeeId } })
+  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.ATESTADO_EXCLUIDO, resource: 'certificates', resourceId: id, details: { employeeId: cert.employeeId } })
 
   return NextResponse.json({ message: 'Atestado excluído' })
 }
