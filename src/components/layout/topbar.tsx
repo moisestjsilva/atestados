@@ -15,6 +15,7 @@ const ROUTE_TITLES: Record<string, { title: string; category?: string }> = {
   '/importacao': { title: 'Importação em Massa de Atestados', category: 'Atestados' },
   '/setores': { title: 'Departamentos e Setores', category: 'Configurações' },
   '/cid': { title: 'Catálogo de CID-10', category: 'Médico' },
+  '/declaracoes': { title: 'Tipos de Declaração / Licenças CLT', category: 'Configurações' },
   '/relatorios': { title: 'Relatórios e Análises', category: 'Estatísticas' },
   '/rankings': { title: 'Rankings de Absenteísmo', category: 'Estatísticas' },
   '/usuarios': { title: 'Gestão de Usuários', category: 'Administração' },

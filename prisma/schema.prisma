@@ -142,6 +142,37 @@ model CidCode {
   @@map("cid_codes")
 }
 
+enum DocumentType {
+  ATESTADO
+  DECLARACAO
+}
+
+enum DeclarationStatus {
+  ATIVO
+  INATIVO
+}
+
+model DeclarationType {
+  id               String            @id @default(cuid())
+  code             String            @unique
+  name             String
+  description      String            @db.Text
+  documentRequired String?           @db.Text
+  quantity         Int?
+  unit             String?
+  isPaid           Boolean           @default(true)
+  legalBase        String?
+  status           DeclarationStatus @default(ATIVO)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  certificates MedicalCertificate[]
+
+  @@index([code])
+  @@index([status])
+  @@map("declaration_types")
+}
+
 // ─────────────────────────────────────────────
 // ATESTADOS
 // ─────────────────────────────────────────────
@@ -152,30 +183,34 @@ enum CertificateStatus {
 }
 
 model MedicalCertificate {
-  id              String            @id @default(cuid())
-  employeeId      String
-  cidId           String?
-  cidDescription  String?
-  doctor          String?
-  crm             String?
-  certificateDate DateTime
-  startDate       DateTime
-  endDate         DateTime
-  daysOff         Int
-  observations    String?           @db.Text
-  status          CertificateStatus @default(ATIVO)
-  deletedAt       DateTime?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  registeredById  String?
+  id                String            @id @default(cuid())
+  employeeId        String
+  documentType      DocumentType      @default(ATESTADO)
+  declarationTypeId String?
+  cidId             String?
+  cidDescription    String?
+  doctor            String?
+  crm               String?
+  certificateDate   DateTime
+  startDate         DateTime
+  endDate           DateTime
+  daysOff           Int
+  observations      String?           @db.Text
+  status            CertificateStatus @default(ATIVO)
+  deletedAt         DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  registeredById    String?
 
-  employee       Employee            @relation(fields: [employeeId], references: [id])
-  cid            CidCode?            @relation(fields: [cidId], references: [id])
-  registeredBy   User?               @relation(fields: [registeredById], references: [id])
-  files          CertificateFile[]
-  bulkImportItem BulkImportItem?
+  employee        Employee         @relation(fields: [employeeId], references: [id])
+  declarationType DeclarationType? @relation(fields: [declarationTypeId], references: [id])
+  cid             CidCode?         @relation(fields: [cidId], references: [id])
+  registeredBy    User?            @relation(fields: [registeredById], references: [id])
+  files           CertificateFile[]
+  bulkImportItem  BulkImportItem?
 
   @@index([employeeId])
+  @@index([declarationTypeId])
   @@index([cidId])
   @@index([certificateDate])
   @@index([startDate])

@@ -16,6 +16,7 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ id: st
     where: { id, status: 'ATIVO' },
     include: {
       employee: { include: { department: true } },
+      declarationType: true,
       cid: true,
       files: true,
       registeredBy: { select: { name: true } },
@@ -27,6 +28,8 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ id: st
 }
 
 const updateSchema = z.object({
+  documentType: z.enum(['ATESTADO', 'DECLARACAO']).optional(),
+  declarationTypeId: z.string().optional().nullable(),
   cidId: z.string().optional().nullable(),
   cidDescription: z.string().optional().nullable(),
   doctor: z.string().optional().nullable(),
@@ -56,6 +59,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
 
   const data: Record<string, unknown> = {}
   const p = parsed.data
+  if (p.documentType) data.documentType = p.documentType
+  if (p.declarationTypeId !== undefined) data.declarationTypeId = p.declarationTypeId
   if (p.cidId !== undefined) data.cidId = p.cidId
   if (p.cidDescription !== undefined) data.cidDescription = p.cidDescription
   if (p.doctor !== undefined) data.doctor = p.doctor

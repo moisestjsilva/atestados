@@ -64,6 +64,7 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         employee: { include: { department: { select: { name: true } } } },
+        declarationType: { select: { id: true, name: true, code: true, legalBase: true, isPaid: true } },
         cid: { select: { code: true, description: true } },
         files: { select: { id: true, originalName: true, mimeType: true } },
       },
@@ -79,11 +80,13 @@ export async function GET(req: NextRequest) {
 
 const createSchema = z.object({
   employeeId: z.string().min(1, 'Funcionário obrigatório'),
+  documentType: z.enum(['ATESTADO', 'DECLARACAO']).optional(),
+  declarationTypeId: z.string().optional().nullable(),
   cidId: z.string().optional().nullable(),
   cidDescription: z.string().optional().nullable(),
   doctor: z.string().optional().nullable(),
   crm: z.string().optional().nullable(),
-  certificateDate: z.string().min(1, 'Data do atestado obrigatória'),
+  certificateDate: z.string().min(1, 'Data do documento obrigatória'),
   startDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable(),
   daysOff: z.number().min(1, 'Mínimo 1 dia').optional(),
@@ -103,7 +106,7 @@ export async function POST(req: NextRequest) {
     return apiError(msg)
   }
 
-  const { employeeId, cidId, cidDescription, doctor, crm, certificateDate, observations, fileId } = parsed.data
+  const { employeeId, documentType, declarationTypeId, cidId, cidDescription, doctor, crm, certificateDate, observations, fileId } = parsed.data
   let { startDate, endDate, daysOff } = parsed.data
 
   const employee = await prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null } })
@@ -138,11 +141,13 @@ export async function POST(req: NextRequest) {
       status: 'ATIVO',
     },
   })
-  if (dup) return apiError('Já existe um atestado ativo cadastrado para este funcionário no mesmo período.')
+  if (dup) return apiError('Já existe um registro ativo cadastrado para este funcionário no mesmo período.')
 
   const cert = await prisma.medicalCertificate.create({
     data: {
       employeeId,
+      documentType: documentType || 'ATESTADO',
+      declarationTypeId: declarationTypeId && declarationTypeId.trim() !== '' ? declarationTypeId : null,
       cidId: cidId && cidId.trim() !== '' ? cidId : null,
       cidDescription: cidDescription || null,
       doctor: doctor || null,
@@ -157,6 +162,7 @@ export async function POST(req: NextRequest) {
     },
     include: {
       employee: { select: { name: true, cpf: true } },
+      declarationType: { select: { id: true, name: true, legalBase: true } },
       cid: { select: { code: true, description: true } },
       files: true,
     },

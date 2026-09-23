@@ -10,7 +10,7 @@ import { toast } from '@/components/ui/toaster'
 import {
   Plus, Search, Filter, X, Eye, Edit, Trash2, Loader2,
   FileText, ChevronLeft, ChevronRight, Upload, Paperclip,
-  CheckCircle, User, AlertCircle
+  CheckCircle, User, AlertCircle, FileCheck
 } from 'lucide-react'
 import Link from 'next/link'
 import { ModalPortal } from '@/components/ui/modal-portal'
@@ -26,6 +26,9 @@ interface Certificate {
   crm?: string | null
   cidDescription?: string | null
   observations?: string | null
+  documentType?: 'ATESTADO' | 'DECLARACAO'
+  declarationTypeId?: string | null
+  declarationType?: { id: string; name: string; legalBase: string | null } | null
   status: string
   employee: { id: string; name: string; cpf: string; department: { name: string } }
   cid: { id: string; code: string; description: string } | null
@@ -58,6 +61,7 @@ export default function AtestadosPage() {
   const [departments, setDepartments] = useState<Department[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [cids, setCids] = useState<Cid[]>([])
+  const [declarationTypes, setDeclarationTypes] = useState<Array<{ id: string; name: string; description: string; documentRequired: string | null; quantity: number | null; unit: string | null; legalBase: string | null }>>([])
 
   const [showModal, setShowModal] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -69,6 +73,8 @@ export default function AtestadosPage() {
 
   const [form, setForm] = useState({
     employeeId: '',
+    documentType: 'ATESTADO' as 'ATESTADO' | 'DECLARACAO',
+    declarationTypeId: '',
     cidId: '',
     cidDescription: '',
     doctor: '',
@@ -91,6 +97,7 @@ export default function AtestadosPage() {
   useEffect(() => {
     fetch('/api/departments?all=true').then(r => r.json()).then(d => setDepartments(d.departments || []))
     fetch('/api/employees?all=true').then(r => r.json()).then(d => setEmployees(d.employees || []))
+    fetch('/api/declaration-types?all=true').then(r => r.json()).then(d => setDeclarationTypes(d.declarationTypes || []))
   }, [])
 
   // Autocomplete funcionário
@@ -198,6 +205,8 @@ export default function AtestadosPage() {
     const today = new Date().toISOString().split('T')[0]
     setForm({
       employeeId: '',
+      documentType: 'ATESTADO',
+      declarationTypeId: '',
       cidId: '',
       cidDescription: '',
       doctor: '',
@@ -225,6 +234,8 @@ export default function AtestadosPage() {
 
     setForm({
       employeeId: cert.employee.id,
+      documentType: cert.documentType || 'ATESTADO',
+      declarationTypeId: cert.declarationTypeId || '',
       cidId: cert.cid ? cert.cid.id : '',
       cidDescription: cert.cid ? cert.cid.description : (cert.cidDescription || ''),
       doctor: cert.doctor || '',
@@ -417,7 +428,17 @@ export default function AtestadosPage() {
                     </td>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{formatCpf(cert.employee.cpf)}</td>
                     <td><span className="badge badge-info">{cert.employee.department.name}</span></td>
-                    <td>{cert.cid ? <span className="badge badge-gray" title={cert.cid.description}>{cert.cid.code}</span> : (cert.cidDescription || '—')}</td>
+                    <td>
+                      {cert.documentType === 'DECLARACAO' ? (
+                        <span className="badge badge-info" style={{ background: 'hsl(260 91% 60% / 0.15)', color: 'hsl(260 91% 55%)' }}>
+                          {cert.declarationType ? cert.declarationType.name : 'Declaração'}
+                        </span>
+                      ) : cert.cid ? (
+                        <span className="badge badge-gray" title={cert.cid.description}>{cert.cid.code}</span>
+                      ) : (
+                        cert.cidDescription || '—'
+                      )}
+                    </td>
                     <td>
                       <span className="badge badge-warning">{cert.daysOff}d</span>
                     </td>
@@ -473,6 +494,52 @@ export default function AtestadosPage() {
             </div>
             <div className="modal-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                {/* Seleção do Tipo de Documento */}
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Tipo de Documento *</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, documentType: 'ATESTADO' }))}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        border: form.documentType === 'ATESTADO' ? '2px solid hsl(var(--primary))' : '1px solid hsl(var(--border))',
+                        background: form.documentType === 'ATESTADO' ? 'hsl(var(--primary) / 0.12)' : 'hsl(var(--secondary) / 0.3)',
+                        color: form.documentType === 'ATESTADO' ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <FileText size={18} /> Atestado Médico
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, documentType: 'DECLARACAO' }))}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        border: form.documentType === 'DECLARACAO' ? '2px solid hsl(260 91% 60%)' : '1px solid hsl(var(--border))',
+                        background: form.documentType === 'DECLARACAO' ? 'hsl(260 91% 60% / 0.12)' : 'hsl(var(--secondary) / 0.3)',
+                        color: form.documentType === 'DECLARACAO' ? 'hsl(260 91% 60%)' : 'hsl(var(--foreground))',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <FileCheck size={18} /> Declaração / Licença CLT
+                    </button>
+                  </div>
+                </div>
+
                 {/* Seleção do Funcionário */}
                 <div className="form-group" style={{ gridColumn: '1 / -1', position: 'relative' }}>
                   <label className="form-label">Funcionário *</label>
@@ -555,9 +622,97 @@ export default function AtestadosPage() {
                   )}
                 </div>
 
+                {/* Campos Específicos por Tipo de Documento */}
+                {form.documentType === 'DECLARACAO' ? (
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="form-label">Motivo / Tipo de Declaração CLT *</label>
+                    <select
+                      className="form-input"
+                      value={form.declarationTypeId}
+                      onChange={e => {
+                        const selectedId = e.target.value
+                        const found = declarationTypes.find(d => d.id === selectedId)
+                        setForm(f => ({
+                          ...f,
+                          declarationTypeId: selectedId,
+                          ...(found?.quantity ? { daysOff: found.quantity } : {}),
+                        }))
+                        if (found?.quantity) {
+                          handleDaysChange(found.quantity)
+                        }
+                      }}
+                      required
+                    >
+                      <option value="">Selecione o tipo de declaração (Art. 473 CLT)...</option>
+                      {declarationTypes.map(d => (
+                        <option key={d.id} value={d.id}>
+                          {d.name} {d.legalBase ? `— ${d.legalBase}` : ''}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Card de Detalhes da Declaração Selecionada */}
+                    {(() => {
+                      const sel = declarationTypes.find(d => d.id === form.declarationTypeId)
+                      if (!sel) return null
+                      return (
+                        <div
+                          style={{
+                            marginTop: '0.75rem',
+                            padding: '0.875rem',
+                            borderRadius: '8px',
+                            background: 'hsl(260 91% 60% / 0.08)',
+                            border: '1px solid hsl(260 91% 60% / 0.3)',
+                            fontSize: '0.825rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.35rem',
+                          }}
+                        >
+                          <div><strong>Situação:</strong> {sel.description}</div>
+                          {sel.legalBase && <div><strong>Base Legal:</strong> {sel.legalBase}</div>}
+                          {sel.documentRequired && <div><strong>Comprovante Exigido:</strong> {sel.documentRequired}</div>}
+                          {sel.unit && <div><strong>Prazo / Direito:</strong> {sel.quantity ? `${sel.quantity} ${sel.unit}` : sel.unit}</div>}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                ) : (
+                  <>
+                    {/* CID Autocomplete */}
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <label className="form-label">CID (Código ou Diagnóstico)</label>
+                      <CidAutocomplete
+                        key={editId || 'new'}
+                        initialCidId={form.cidId}
+                        initialCode={editingCert?.cid?.code}
+                        initialDescription={form.cidDescription}
+                        onSelect={(cid, text) => {
+                          setForm(f => ({
+                            ...f,
+                            cidId: cid ? cid.id : '',
+                            cidDescription: cid ? cid.description : text,
+                          }))
+                        }}
+                      />
+                      <span className="form-hint">Digite o código (ex: M54.5, J06, F41) ou o diagnóstico da doença</span>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Nome do Médico</label>
+                      <input type="text" value={form.doctor} onChange={e => setForm(f => ({ ...f, doctor: e.target.value }))} className="form-input" placeholder="Dr(a). Nome Sobrenome" />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">CRM</label>
+                      <input type="text" value={form.crm} onChange={e => setForm(f => ({ ...f, crm: e.target.value }))} className="form-input" placeholder="CRM/UF" />
+                    </div>
+                  </>
+                )}
+
                 {/* Datas e Prazos */}
                 <div className="form-group">
-                  <label className="form-label">Data de Emissão do Atestado *</label>
+                  <label className="form-label">Data de Emissão / Evento *</label>
                   <input
                     type="date"
                     value={form.certificateDate}
@@ -600,30 +755,6 @@ export default function AtestadosPage() {
                     className="form-input"
                     required
                   />
-                </div>
-
-                {/* CID Autocomplete */}
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label">CID (Código ou Diagnóstico)</label>
-                  <CidAutocomplete
-                    key={editId || 'new'}
-                    initialCidId={form.cidId}
-                    initialCode={editingCert?.cid?.code}
-                    initialDescription={form.cidDescription}
-                    onSelect={(cid, text) => {
-                      setForm(f => ({
-                        ...f,
-                        cidId: cid ? cid.id : '',
-                        cidDescription: cid ? cid.description : text,
-                      }))
-                    }}
-                  />
-                  <span className="form-hint">Digite o código (ex: M54.5, J06, F41) ou o diagnóstico da doença para autocompletar</span>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Nome do Médico</label>
-                  <input type="text" value={form.doctor} onChange={e => setForm(f => ({ ...f, doctor: e.target.value }))} className="form-input" placeholder="Dr(a). Nome Sobrenome" />
                 </div>
 
                 <div className="form-group">

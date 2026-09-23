@@ -20,6 +20,16 @@ import { CidAutocomplete } from '@/components/ui/cid-autocomplete'
 
 interface CertificateDetails {
   id: string
+  documentType?: 'ATESTADO' | 'DECLARACAO'
+  declarationTypeId?: string | null
+  declarationType?: {
+    id: string
+    name: string
+    code: string
+    description: string
+    legalBase: string | null
+    documentRequired: string | null
+  } | null
   certificateDate: string
   startDate: string
   endDate: string
@@ -217,7 +227,12 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
             <span style={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}>Detalhes #{cert.id.slice(-6).toUpperCase()}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
-            <h1 className="page-title" style={{ margin: 0 }}>Atestado Médico</h1>
+            <h1 className="page-title" style={{ margin: 0 }}>
+              {cert.documentType === 'DECLARACAO' ? 'Declaração / Licença' : 'Atestado Médico'}
+            </h1>
+            <span className={`badge ${cert.documentType === 'DECLARACAO' ? 'badge-primary' : 'badge-info'}`}>
+              {cert.documentType === 'DECLARACAO' ? 'Declaração CLT' : 'Atestado Médico'}
+            </span>
             <span className={`badge ${cert.status === 'ATIVO' ? 'badge-success' : 'badge-danger'}`}>
               {cert.status === 'ATIVO' ? 'Ativo' : 'Excluído'}
             </span>
@@ -340,44 +355,89 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        {/* Card 3: Informações Médicas */}
+        {/* Card 3: Informações Médicas ou de Declaração */}
         <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '1.25rem', borderBottom: '1px solid hsl(var(--border) / 0.6)', paddingBottom: '0.75rem' }}>
-            <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'hsl(142 71% 45% / 0.12)', color: 'hsl(142 71% 40%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Stethoscope size={20} />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>Dados Médicos e CID</h2>
-              <span style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>Diagnóstico e profissional</span>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-            <div>
-              <span className="form-label" style={{ fontSize: '0.75rem' }}>CID Registrado</span>
-              {cert.cid ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span className="badge badge-info" style={{ fontSize: '0.85rem', fontWeight: 700 }}>{cert.cid.code}</span>
-                  <span style={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}>{cert.cid.description}</span>
+          {cert.documentType === 'DECLARACAO' ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '1.25rem', borderBottom: '1px solid hsl(var(--border) / 0.6)', paddingBottom: '0.75rem' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'hsl(var(--primary) / 0.12)', color: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileText size={20} />
                 </div>
-              ) : cert.cidDescription ? (
-                <div style={{ fontSize: '0.9rem' }}>{cert.cidDescription}</div>
-              ) : (
-                <div style={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>Não especificado</div>
-              )}
-            </div>
+                <div>
+                  <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>Tipo de Declaração CLT</h2>
+                  <span style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>Motivo legal de abono / licença</span>
+                </div>
+              </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              <div>
-                <span className="form-label" style={{ fontSize: '0.75rem' }}>Médico Responsável</span>
-                <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{cert.doctor || '—'}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                <div>
+                  <span className="form-label" style={{ fontSize: '0.75rem' }}>Tipo / Motivo</span>
+                  <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'hsl(var(--primary))', marginTop: '0.15rem' }}>
+                    {cert.declarationType ? cert.declarationType.name : 'Declaração CLT'}
+                  </div>
+                  {cert.declarationType?.description && (
+                    <div style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))', marginTop: '0.25rem' }}>
+                      {cert.declarationType.description}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <span className="form-label" style={{ fontSize: '0.75rem' }}>Base Legal</span>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                      {cert.declarationType?.legalBase || 'CLT - Art. 473'}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="form-label" style={{ fontSize: '0.75rem' }}>Comprovante Exigido</span>
+                    <div style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))' }}>
+                      {cert.declarationType?.documentRequired || 'Comprovante oficial'}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="form-label" style={{ fontSize: '0.75rem' }}>CRM</span>
-                <div style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{cert.crm || '—'}</div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '1.25rem', borderBottom: '1px solid hsl(var(--border) / 0.6)', paddingBottom: '0.75rem' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'hsl(142 71% 45% / 0.12)', color: 'hsl(142 71% 40%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Stethoscope size={20} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>Dados Médicos e CID</h2>
+                  <span style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>Diagnóstico e profissional</span>
+                </div>
               </div>
-            </div>
-          </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                <div>
+                  <span className="form-label" style={{ fontSize: '0.75rem' }}>CID Registrado</span>
+                  {cert.cid ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                      <span className="badge badge-info" style={{ fontSize: '0.85rem', fontWeight: 700 }}>{cert.cid.code}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))' }}>{cert.cid.description}</span>
+                    </div>
+                  ) : cert.cidDescription ? (
+                    <div style={{ fontSize: '0.9rem' }}>{cert.cidDescription}</div>
+                  ) : (
+                    <div style={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>Não especificado</div>
+                  )}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <span className="form-label" style={{ fontSize: '0.75rem' }}>Médico Responsável</span>
+                    <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{cert.doctor || '—'}</div>
+                  </div>
+                  <div>
+                    <span className="form-label" style={{ fontSize: '0.75rem' }}>CRM</span>
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{cert.crm || '—'}</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Card 4: Documentos Anexos */}

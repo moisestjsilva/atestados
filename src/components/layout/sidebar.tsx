@@ -9,7 +9,7 @@ import { getInitials } from '@/lib/utils'
 import {
   LayoutDashboard, FileText, Upload, Users, Building2,
   Stethoscope, BarChart3, Trophy, UserCog, ScrollText,
-  Settings, LogOut, ChevronLeft, Menu
+  Settings, LogOut, ChevronLeft, Menu, FileCheck
 } from 'lucide-react'
 import { useState } from 'react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -24,11 +24,12 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
-  { href: '/atestados', label: 'Atestados', icon: <FileText size={18} />, permission: 'certificates:view' },
+  { href: '/atestados', label: 'Atestados & Declarações', icon: <FileText size={18} />, permission: 'certificates:view' },
   { href: '/importacao', label: 'Importação em Massa', icon: <Upload size={18} />, permission: 'certificates:import' },
   { href: '/funcionarios', label: 'Funcionários', icon: <Users size={18} />, permission: 'employees:view' },
   { href: '/setores', label: 'Setores', icon: <Building2 size={18} />, permission: 'departments:view' },
   { href: '/cid', label: 'CID', icon: <Stethoscope size={18} />, permission: 'cid:view' },
+  { href: '/declaracoes', label: 'Tipos de Declaração', icon: <FileCheck size={18} />, permission: 'certificates:view' },
   { href: '/relatorios', label: 'Relatórios', icon: <BarChart3 size={18} />, permission: 'reports:view' },
   { href: '/rankings', label: 'Rankings', icon: <Trophy size={18} />, permission: 'rankings:view' },
 ]

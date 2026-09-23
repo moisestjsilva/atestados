@@ -7,7 +7,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, User, Building2, Calendar, FileText, Plus,
   Edit, Trash2, AlertCircle, Loader2, X, Clock, Eye,
-  CheckCircle, Briefcase, Hash, Phone, Mail
+  CheckCircle, Briefcase, Hash, Phone, Mail, Stethoscope
 } from 'lucide-react'
 import { formatCpf, formatDate } from '@/lib/utils'
 import { toast } from '@/components/ui/toaster'
@@ -84,10 +84,15 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  // Declaration types list
+  const [declarationTypes, setDeclarationTypes] = useState<any[]>([])
+
   // New Certificate Modal
   const [showCertModal, setShowCertModal] = useState(false)
   const [savingCert, setSavingCert] = useState(false)
   const [certForm, setCertForm] = useState({
+    documentType: 'ATESTADO' as 'ATESTADO' | 'DECLARACAO',
+    declarationTypeId: '',
     certificateDate: new Date().toISOString().split('T')[0],
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
@@ -98,6 +103,16 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
     cidDescription: '',
     observations: '',
   })
+
+  // Load declaration types
+  useEffect(() => {
+    fetch('/api/declaration-types')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setDeclarationTypes(data)
+      })
+      .catch(() => {})
+  }, [])
 
   const loadData = useCallback(async () => {
     try {
@@ -205,6 +220,8 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
         toast('Atestado cadastrado com sucesso!', 'success')
         setShowCertModal(false)
         setCertForm({
+          documentType: 'ATESTADO',
+          declarationTypeId: '',
           certificateDate: new Date().toISOString().split('T')[0],
           startDate: new Date().toISOString().split('T')[0],
           endDate: new Date().toISOString().split('T')[0],
@@ -601,13 +618,15 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
         </ModalPortal>
       )}
 
-      {/* Fast Register Certificate Modal for this employee */}
+      {/* Fast Register Certificate / Declaration Modal for this employee */}
       {showCertModal && (
         <ModalPortal>
           <div className="modal-overlay" onClick={() => setShowCertModal(false)}>
           <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontWeight: 600 }}>Novo Atestado para {employee.name}</h3>
+              <h3 style={{ fontWeight: 600 }}>
+                {certForm.documentType === 'ATESTADO' ? 'Novo Atestado Médicos' : 'Nova Declaração / Licença'} para {employee.name}
+              </h3>
               <button onClick={() => setShowCertModal(false)} className="btn btn-ghost btn-icon">
                 <X size={18} />
               </button>
@@ -615,8 +634,88 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
             <form onSubmit={handleCreateCert}>
               <div className="modal-body">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  
+                  {/* Seletor Tipo de Documento */}
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="form-label">Tipo de Documento *</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      <button
+                        type="button"
+                        className={`btn ${certForm.documentType === 'ATESTADO' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ justifyContent: 'center', fontWeight: 600, padding: '0.75rem' }}
+                        onClick={() => setCertForm(f => ({ ...f, documentType: 'ATESTADO', declarationTypeId: '' }))}
+                      >
+                        <Stethoscope size={18} /> Atestado Médico
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn ${certForm.documentType === 'DECLARACAO' ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ justifyContent: 'center', fontWeight: 600, padding: '0.75rem' }}
+                        onClick={() => setCertForm(f => ({ ...f, documentType: 'DECLARACAO' }))}
+                      >
+                        <FileText size={18} /> Declaração / Licença CLT
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Caso seja Declaração: Selecionar o tipo de declaração */}
+                  {certForm.documentType === 'DECLARACAO' && (
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <label className="form-label">Tipo de Declaração / Motivo CLT *</label>
+                      <select
+                        className="form-input"
+                        value={certForm.declarationTypeId}
+                        required={certForm.documentType === 'DECLARACAO'}
+                        onChange={e => {
+                          const dtId = e.target.value
+                          const dt = declarationTypes.find(d => d.id === dtId)
+                          if (dt) {
+                            const qty = dt.quantity || 1
+                            const start = new Date(certForm.startDate || certForm.certificateDate)
+                            start.setDate(start.getDate() + (qty - 1))
+                            setCertForm(f => ({
+                              ...f,
+                              declarationTypeId: dtId,
+                              daysOff: qty,
+                              endDate: start.toISOString().split('T')[0]
+                            }))
+                          } else {
+                            setCertForm(f => ({ ...f, declarationTypeId: dtId }))
+                          }
+                        }}
+                      >
+                        <option value="">Selecione o tipo de declaração...</option>
+                        {declarationTypes.map(d => (
+                          <option key={d.id} value={d.id}>
+                            {d.name} {d.quantity ? `(${d.quantity} ${d.unit})` : ''} - {d.legalBase}
+                          </option>
+                        ))}
+                      </select>
+                      {certForm.declarationTypeId && (() => {
+                        const selectedDt = declarationTypes.find(d => d.id === certForm.declarationTypeId)
+                        if (!selectedDt) return null
+                        return (
+                          <div className="card" style={{ marginTop: '0.75rem', padding: '0.875rem', background: 'hsl(var(--secondary) / 0.4)', fontSize: '0.85rem' }}>
+                            <div style={{ fontWeight: 600, color: 'hsl(var(--primary))' }}>{selectedDt.name}</div>
+                            <div style={{ marginTop: '0.25rem' }}>{selectedDt.description}</div>
+                            {selectedDt.documentRequired && (
+                              <div style={{ marginTop: '0.35rem', color: 'hsl(var(--muted-foreground))' }}>
+                                📄 <strong>Comprovante exigido:</strong> {selectedDt.documentRequired}
+                              </div>
+                            )}
+                            {selectedDt.legalBase && (
+                              <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', fontWeight: 600 }}>
+                                ⚖️ <strong>Base Legal:</strong> {selectedDt.legalBase}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  )}
+
                   <div className="form-group">
-                    <label className="form-label">Data do Atestado *</label>
+                    <label className="form-label">Data do Documento *</label>
                     <input
                       type="date"
                       value={certForm.certificateDate}
@@ -663,44 +762,48 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Médico</label>
-                    <input
-                      type="text"
-                      value={certForm.doctor}
-                      onChange={e => setCertForm(f => ({ ...f, doctor: e.target.value }))}
-                      className="form-input"
-                      placeholder="Nome do médico"
-                    />
-                  </div>
+                  {certForm.documentType === 'ATESTADO' && (
+                    <>
+                      <div className="form-group">
+                        <label className="form-label">Médico</label>
+                        <input
+                          type="text"
+                          value={certForm.doctor}
+                          onChange={e => setCertForm(f => ({ ...f, doctor: e.target.value }))}
+                          className="form-input"
+                          placeholder="Nome do médico"
+                        />
+                      </div>
 
-                  <div className="form-group">
-                    <label className="form-label">CRM</label>
-                    <input
-                      type="text"
-                      value={certForm.crm}
-                      onChange={e => setCertForm(f => ({ ...f, crm: e.target.value }))}
-                      className="form-input"
-                      placeholder="CRM/UF"
-                    />
-                  </div>
+                      <div className="form-group">
+                        <label className="form-label">CRM</label>
+                        <input
+                          type="text"
+                          value={certForm.crm}
+                          onChange={e => setCertForm(f => ({ ...f, crm: e.target.value }))}
+                          className="form-input"
+                          placeholder="CRM/UF"
+                        />
+                      </div>
 
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label className="form-label">CID (Código ou Diagnóstico)</label>
-                    <CidAutocomplete
-                      key={showCertModal ? 'open' : 'closed'}
-                      initialCidId={certForm.cidId}
-                      initialDescription={certForm.cidDescription}
-                      onSelect={(cid, text) => {
-                        setCertForm(f => ({
-                          ...f,
-                          cidId: cid ? cid.id : '',
-                          cidDescription: cid ? cid.description : text,
-                        }))
-                      }}
-                    />
-                    <span className="form-hint">Digite o código (ex: M54.5, J06, F41) ou o diagnóstico da doença</span>
-                  </div>
+                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="form-label">CID (Código ou Diagnóstico)</label>
+                        <CidAutocomplete
+                          key={showCertModal ? 'open' : 'closed'}
+                          initialCidId={certForm.cidId}
+                          initialDescription={certForm.cidDescription}
+                          onSelect={(cid, text) => {
+                            setCertForm(f => ({
+                              ...f,
+                              cidId: cid ? cid.id : '',
+                              cidDescription: cid ? cid.description : text,
+                            }))
+                          }}
+                        />
+                        <span className="form-hint">Digite o código (ex: M54.5, J06, F41) ou o diagnóstico da doença</span>
+                      </div>
+                    </>
+                  )}
 
                   <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                     <label className="form-label">Observações</label>
@@ -719,7 +822,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
                   Cancelar
                 </button>
                 <button type="submit" disabled={savingCert} className="btn btn-primary">
-                  {savingCert ? <><Loader2 size={14} className="animate-spin" /> Registrando...</> : 'Registrar Atestado'}
+                  {savingCert ? <><Loader2 size={14} className="animate-spin" /> Registrando...</> : certForm.documentType === 'DECLARACAO' ? 'Registrar Declaração' : 'Registrar Atestado'}
                 </button>
               </div>
             </form>
