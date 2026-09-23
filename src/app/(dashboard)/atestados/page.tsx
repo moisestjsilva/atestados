@@ -162,7 +162,7 @@ export default function AtestadosPage() {
       ...(filterDept && { departmentId: filterDept }),
       ...(filterFrom && { dateFrom: filterFrom }),
       ...(filterTo && { dateTo: filterTo }),
-      ...(search && { cpf: search }),
+      ...(search && { search: search.trim() }),
     })
     const res = await fetch(`/api/certificates?${params}`)
     const json = await res.json()
@@ -341,11 +341,11 @@ export default function AtestadosPage() {
 
       {/* Filters */}
       <div className="card" style={{ marginBottom: '1.25rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div className="form-group" style={{ flex: '1 1 200px' }}>
-          <label className="form-label">Buscar por CPF</label>
+        <div className="form-group" style={{ flex: '1 1 240px' }}>
+          <label className="form-label">Buscar por Nome ou CPF</label>
           <div style={{ position: 'relative' }}>
             <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--muted-foreground))' }} />
-            <input type="text" placeholder="CPF do funcionário..." value={search} onChange={e => setSearch(e.target.value)} className="form-input" style={{ paddingLeft: '2.25rem' }} />
+            <input type="text" placeholder="Buscar por nome ou CPF do funcionário..." value={search} onChange={e => setSearch(e.target.value)} className="form-input" style={{ paddingLeft: '2.25rem' }} />
           </div>
         </div>
         <div className="form-group" style={{ minWidth: 160 }}>

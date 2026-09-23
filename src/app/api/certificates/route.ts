@@ -18,31 +18,45 @@ export async function GET(req: NextRequest) {
   const employeeId = searchParams.get('employeeId') || ''
   const departmentId = searchParams.get('departmentId') || ''
   const cidId = searchParams.get('cidId') || ''
-  const cpf = searchParams.get('cpf') || ''
+  const rawSearch = (searchParams.get('search') || searchParams.get('cpf') || searchParams.get('q') || '').trim()
   const dateFrom = searchParams.get('dateFrom') || ''
   const dateTo = searchParams.get('dateTo') || ''
   const minDays = searchParams.get('minDays') ? parseInt(searchParams.get('minDays')!) : undefined
   const maxDays = searchParams.get('maxDays') ? parseInt(searchParams.get('maxDays')!) : undefined
 
-  const where: Record<string, unknown> = {
+  const where: any = {
     status: 'ATIVO',
     ...(employeeId && { employeeId }),
     ...(cidId && { cidId }),
-    ...(dateFrom && { certificateDate: { gte: new Date(dateFrom) } }),
-    ...(dateTo && { certificateDate: { lte: new Date(dateTo) } }),
     ...(minDays !== undefined && { daysOff: { gte: minDays } }),
     ...(maxDays !== undefined && { daysOff: { lte: maxDays } }),
   }
 
-  if (cpf) {
-    where.employee = { cpf: normalizeCpf(cpf) }
-  }
   if (departmentId) {
-    where.employee = { ...(where.employee as object || {}), departmentId }
+    where.employee = { ...(where.employee || {}), departmentId }
   }
 
   if (dateFrom && dateTo) {
     where.certificateDate = { gte: new Date(dateFrom), lte: new Date(dateTo) }
+  } else if (dateFrom) {
+    where.certificateDate = { gte: new Date(dateFrom) }
+  } else if (dateTo) {
+    where.certificateDate = { lte: new Date(dateTo) }
+  }
+
+  if (rawSearch) {
+    const digitsOnly = rawSearch.replace(/\D/g, '')
+    const searchConditions: any[] = [
+      { employee: { name: { contains: rawSearch } } },
+      { doctor: { contains: rawSearch } },
+      { cidDescription: { contains: rawSearch } },
+      { cid: { code: { contains: rawSearch } } },
+      { cid: { description: { contains: rawSearch } } },
+    ]
+    if (digitsOnly.length >= 2) {
+      searchConditions.push({ employee: { cpf: { contains: digitsOnly } } })
+    }
+    where.OR = searchConditions
   }
 
   const [certificates, total] = await Promise.all([
