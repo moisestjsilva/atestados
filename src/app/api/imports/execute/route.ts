@@ -12,7 +12,8 @@ export const maxDuration = 300 // 5 minutos
 
 interface ImportRow {
   index: number
-  employeeId: string
+  employeeId?: string
+  employeeName?: string
   cpf: string
   cidId?: string
   cidDescription?: string
@@ -66,21 +67,49 @@ export async function POST(req: NextRequest) {
 
     for (const row of batch) {
       try {
+        const normCpf = normalizeCpf(row.cpf)
+
         // Valida funcionário
-        const employee = await prisma.employee.findFirst({
+        let employee = row.employeeId ? await prisma.employee.findFirst({
           where: { id: row.employeeId, deletedAt: null },
           select: { id: true, name: true, cpf: true },
-        })
+        }) : null
+
+        if (!employee && normCpf) {
+          employee = await prisma.employee.findFirst({
+            where: { cpf: normCpf, deletedAt: null },
+            select: { id: true, name: true, cpf: true },
+          })
+        }
+
+        // Auto-criação de funcionário se não existir mas houver nome
+        if (!employee && row.employeeName && isValidCpf(normCpf)) {
+          let defaultDept = await prisma.department.findFirst({ where: { status: 'ATIVO' } })
+          if (!defaultDept) {
+            defaultDept = await prisma.department.create({
+              data: { code: 'GERAL', name: 'Geral', status: 'ATIVO' },
+            })
+          }
+          employee = await prisma.employee.create({
+            data: {
+              name: row.employeeName,
+              cpf: normCpf,
+              departmentId: defaultDept.id,
+              status: 'ATIVO',
+            },
+            select: { id: true, name: true, cpf: true },
+          })
+        }
 
         if (!employee) {
           errors++
-          errorReport.push({ row: row.index, cpf: row.cpf, employee: '—', problem: 'Funcionário não encontrado', status: 'ERRO' })
+          errorReport.push({ row: row.index, cpf: row.cpf, employee: row.employeeName || '—', problem: 'Funcionário não encontrado', status: 'ERRO' })
           continue
         }
 
-        const startDate = new Date(row.startDate)
-        const endDate = new Date(row.endDate)
-        const certDate = new Date(row.certificateDate)
+        const certDate = row.certificateDate ? new Date(row.certificateDate) : new Date()
+        const startDate = row.startDate ? new Date(row.startDate) : certDate
+        const endDate = row.endDate ? new Date(row.endDate) : startDate
 
         // Verifica duplicidade
         if (!row.skipDuplicate) {
