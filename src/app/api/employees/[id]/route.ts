@@ -93,21 +93,51 @@ export async function DELETE(_req: NextRequest, context: { params: Promise<{ id:
   const employee = await prisma.employee.findFirst({ where: { id, deletedAt: null } })
   if (!employee) return apiError('Funcionário não encontrado', 404)
 
-  const certCount = await prisma.medicalCertificate.count({ where: { employeeId: id, status: 'ATIVO' } })
+  // Verifica se o funcionário possui atestados cadastrados (qualquer status)
+  const certCount = await prisma.medicalCertificate.count({ where: { employeeId: id } })
 
   if (certCount > 0) {
-    // Exclusão lógica - inativa o funcionário
+    // Exclusão lógica (soft delete) - inativa e oculta da lista
     await prisma.employee.update({
       where: { id },
       data: { status: 'INATIVO', deletedAt: new Date() },
     })
-    await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.FUNCIONARIO_INATIVADO, resource: 'employees', resourceId: id, details: { name: employee.name, reason: 'possui atestados' } })
-    return NextResponse.json({ message: 'Funcionário inativado (possui histórico de atestados)', softDeleted: true })
+    await createAuditLog({
+      userId: user.id,
+      userName: user.name,
+      action: AUDIT_ACTIONS.FUNCIONARIO_INATIVADO,
+      resource: 'employees',
+      resourceId: id,
+      details: { name: employee.name, reason: 'possui histórico de atestados' },
+    })
+    return NextResponse.json({ message: 'Funcionário inativado e removido da lista (possui histórico de atestados)', softDeleted: true })
   }
 
-  // Exclusão física (sem histórico)
-  await prisma.employee.delete({ where: { id } })
-  await createAuditLog({ userId: user.id, userName: user.name, action: AUDIT_ACTIONS.FUNCIONARIO_EXCLUIDO, resource: 'employees', resourceId: id, details: { name: employee.name } })
-
-  return NextResponse.json({ message: 'Funcionário excluído', softDeleted: false })
+  // Tenta exclusão física; se houver restrição de integridade em tabelas relativas, realiza soft delete
+  try {
+    await prisma.employee.delete({ where: { id } })
+    await createAuditLog({
+      userId: user.id,
+      userName: user.name,
+      action: AUDIT_ACTIONS.FUNCIONARIO_EXCLUIDO,
+      resource: 'employees',
+      resourceId: id,
+      details: { name: employee.name },
+    })
+    return NextResponse.json({ message: 'Funcionário excluído com sucesso', softDeleted: false })
+  } catch {
+    await prisma.employee.update({
+      where: { id },
+      data: { status: 'INATIVO', deletedAt: new Date() },
+    })
+    await createAuditLog({
+      userId: user.id,
+      userName: user.name,
+      action: AUDIT_ACTIONS.FUNCIONARIO_INATIVADO,
+      resource: 'employees',
+      resourceId: id,
+      details: { name: employee.name, reason: 'restrição de integridade' },
+    })
+    return NextResponse.json({ message: 'Funcionário inativado e removido da lista', softDeleted: true })
+  }
 }

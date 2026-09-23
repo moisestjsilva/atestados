@@ -89,16 +89,20 @@ export default function FuncionariosPage() {
 
   async function handleDelete(emp: Employee) {
     setDeleting(true)
-    const res = await fetch(`/api/employees/${emp.id}`, { method: 'DELETE' })
-    setDeleting(false)
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/employees/${emp.id}`, { method: 'DELETE' })
       const data = await res.json()
-      toast(data.softDeleted ? 'Funcionário inativado (possui histórico de atestados)' : 'Funcionário excluído', data.softDeleted ? 'warning' : 'success')
-      setDeleteTarget(null)
-      fetchData()
-    } else {
-      const data = await res.json()
-      toast(data.error || 'Erro ao excluir', 'error')
+      if (res.ok) {
+        toast(data.softDeleted ? 'Funcionário inativado e removido da lista' : 'Funcionário excluído com sucesso', 'success')
+        setDeleteTarget(null)
+        fetchData()
+      } else {
+        toast(data.error || 'Erro ao excluir funcionário', 'error')
+      }
+    } catch {
+      toast('Erro de conexão ao excluir funcionário', 'error')
+    } finally {
+      setDeleting(false)
     }
   }
 
