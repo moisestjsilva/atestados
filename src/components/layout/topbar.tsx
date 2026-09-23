@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { getInitials } from '@/lib/utils'
 import Link from 'next/link'
-import { Plus, Bell, Shield, User, FileText, ChevronRight } from 'lucide-react'
+import { Bell, Shield, User, FileText, ChevronRight } from 'lucide-react'
 
 const ROUTE_TITLES: Record<string, { title: string; category?: string }> = {
   '/dashboard': { title: 'Dashboard Geral', category: 'Visão Geral' },
@@ -59,15 +59,6 @@ export function Topbar() {
 
       {/* Right actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        {/* Quick certificate shortcut */}
-        <Link
-          href="/atestados"
-          className="btn btn-primary btn-sm"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem' }}
-        >
-          <Plus size={15} />
-          <span>Novo Atestado</span>
-        </Link>
 
         {/* Theme Toggle Button */}
         <ThemeToggle variant="icon" />
