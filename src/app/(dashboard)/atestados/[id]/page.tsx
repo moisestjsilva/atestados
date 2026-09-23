@@ -7,7 +7,8 @@ import Link from 'next/link'
 import {
   ArrowLeft, FileText, Calendar, Clock, User, Building2,
   Stethoscope, Shield, Edit, Trash2, Printer, Download,
-  CheckCircle, AlertCircle, Loader2, X, ExternalLink
+  CheckCircle, AlertCircle, Loader2, X, ExternalLink,
+  ZoomIn, Maximize2, Eye
 } from 'lucide-react'
 import { formatCpf, formatDate } from '@/lib/utils'
 import { toast } from '@/components/ui/toaster'
@@ -88,6 +89,19 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
   // Delete Modal State
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Document Preview / Lightbox State
+  const [previewFile, setPreviewFile] = useState<{ id: string; originalName: string; mimeType: string } | null>(null)
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setPreviewFile(null)
+    }
+    if (previewFile) {
+      window.addEventListener('keydown', handleKeyDown)
+      return () => window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [previewFile])
 
   useEffect(() => {
     async function fetchCert() {
@@ -376,52 +390,168 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
           </div>
 
           {cert.files && cert.files.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {cert.files.map(f => (
-                <div
-                  key={f.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.75rem',
-                    borderRadius: '8px',
-                    border: '1px solid hsl(var(--border))',
-                    background: 'hsl(var(--secondary) / 0.3)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', overflow: 'hidden' }}>
-                    <FileText size={18} style={{ color: 'hsl(var(--primary))', flexShrink: 0 }} />
-                    <div style={{ overflow: 'hidden' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                        {f.originalName}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {cert.files.map(f => {
+                const isImage = f.mimeType.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.originalName)
+                const isPdf = f.mimeType === 'application/pdf' || /\.pdf$/i.test(f.originalName)
+
+                return (
+                  <div
+                    key={f.id}
+                    style={{
+                      borderRadius: '10px',
+                      border: '1px solid hsl(var(--border))',
+                      background: 'hsl(var(--secondary) / 0.25)',
+                      overflow: 'hidden',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    {/* Header info */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.75rem 0.875rem',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', overflow: 'hidden' }}>
+                        <FileText size={18} style={{ color: 'hsl(var(--primary))', flexShrink: 0 }} />
+                        <div style={{ overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              textOverflow: 'ellipsis',
+                              overflow: 'hidden',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '180px',
+                            }}
+                            title={f.originalName}
+                          >
+                            {f.originalName}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
+                            {(f.sizeBytes / 1024).toFixed(1)} KB • {formatDate(f.uploadedAt)}
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
-                        {(f.sizeBytes / 1024).toFixed(1)} KB • {formatDate(f.uploadedAt)}
+
+                      <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewFile(f)}
+                          className="btn btn-secondary btn-sm"
+                          title="Visualizar ampliado"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
+                        >
+                          <Eye size={13} /> Abrir
+                        </button>
+                        <a
+                          href={`/api/files/${f.id}?download=true`}
+                          className="btn btn-secondary btn-sm"
+                          title="Baixar arquivo"
+                          style={{ display: 'inline-flex', alignItems: 'center', padding: '0.35rem 0.5rem' }}
+                        >
+                          <Download size={13} />
+                        </a>
                       </div>
                     </div>
-                  </div>
 
-                  <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
-                    <a
-                      href={`/api/files/${f.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-secondary btn-sm"
-                      title="Visualizar documento"
-                    >
-                      <ExternalLink size={14} /> Abrir
-                    </a>
-                    <a
-                      href={`/api/files/${f.id}?download=true`}
-                      className="btn btn-secondary btn-sm"
-                      title="Baixar arquivo"
-                    >
-                      <Download size={14} />
-                    </a>
+                    {/* Visual Thumbnail Area */}
+                    {isImage ? (
+                      <div
+                        onClick={() => setPreviewFile(f)}
+                        style={{
+                          position: 'relative',
+                          borderTop: '1px solid hsl(var(--border) / 0.6)',
+                          background: 'hsl(var(--card))',
+                          height: '220px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          overflow: 'hidden',
+                        }}
+                        title="Clique para ampliar o atestado"
+                      >
+                        <img
+                          src={`/api/files/${f.id}`}
+                          alt={f.originalName}
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain',
+                            display: 'block',
+                            transition: 'transform 0.2s ease',
+                          }}
+                        />
+                        {/* Hover Overlay */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'rgba(0, 0, 0, 0.45)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.35rem',
+                            color: '#ffffff',
+                            opacity: 0,
+                            transition: 'opacity 0.2s ease',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = '0')}
+                        >
+                          <ZoomIn size={26} />
+                          <span style={{ fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.02em' }}>Clique para ampliar</span>
+                        </div>
+                      </div>
+                    ) : isPdf ? (
+                      <div
+                        style={{
+                          position: 'relative',
+                          borderTop: '1px solid hsl(var(--border) / 0.6)',
+                          background: 'hsl(var(--card))',
+                          height: '240px',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <iframe
+                          src={`/api/files/${f.id}#toolbar=0&navpanes=0&scrollbar=0`}
+                          style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
+                          title={f.originalName}
+                        />
+                        <div
+                          onClick={() => setPreviewFile(f)}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'background 0.2s ease',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 0, 0, 0.45)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0, 0, 0, 0.2)')}
+                          title="Clique para visualizar PDF completo"
+                        >
+                          <span
+                            className="btn btn-primary btn-sm"
+                            style={{ pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
+                          >
+                            <Maximize2 size={14} /> Ver PDF em tela cheia
+                          </span>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '1.5rem', color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>
@@ -582,6 +712,127 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
         </div>
+        </ModalPortal>
+      )}
+
+      {/* Lightbox / Document Viewer Modal */}
+      {previewFile && (
+        <ModalPortal>
+          <div
+            className="modal-overlay"
+            style={{ zIndex: 9999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(5px)' }}
+            onClick={() => setPreviewFile(null)}
+          >
+            <div
+              className="modal"
+              style={{
+                maxWidth: '94vw',
+                width: '1050px',
+                maxHeight: '94vh',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: 0,
+                overflow: 'hidden',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.65)',
+                border: '1px solid hsl(var(--border) / 0.8)',
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal Top Bar */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.875rem 1.25rem',
+                  borderBottom: '1px solid hsl(var(--border))',
+                  background: 'hsl(var(--card))',
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+                  <FileText size={20} style={{ color: 'hsl(var(--primary))', flexShrink: 0 }} />
+                  <div style={{ overflow: 'hidden' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600, margin: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      {previewFile.originalName}
+                    </h3>
+                    <span style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+                      Comprovante digitalizado do atestado #{cert.id.slice(-6).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                  <a
+                    href={`/api/files/${previewFile.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-secondary btn-sm"
+                    title="Abrir em nova aba"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <ExternalLink size={14} /> Nova Aba
+                  </a>
+                  <a
+                    href={`/api/files/${previewFile.id}?download=true`}
+                    className="btn btn-secondary btn-sm"
+                    title="Baixar arquivo original"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Download size={14} /> Baixar
+                  </a>
+                  <button
+                    onClick={() => setPreviewFile(null)}
+                    className="btn btn-ghost btn-icon"
+                    title="Fechar (Esc)"
+                    style={{ width: 32, height: 32, padding: 0 }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Viewer Content */}
+              <div
+                style={{
+                  flex: 1,
+                  overflow: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'hsl(var(--background) / 0.98)',
+                  minHeight: '450px',
+                  maxHeight: 'calc(94vh - 65px)',
+                  padding: '1.25rem',
+                }}
+              >
+                {previewFile.mimeType.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(previewFile.originalName) ? (
+                  <img
+                    src={`/api/files/${previewFile.id}`}
+                    alt={previewFile.originalName}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: 'calc(94vh - 100px)',
+                      objectFit: 'contain',
+                      borderRadius: '6px',
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
+                    }}
+                  />
+                ) : (
+                  <iframe
+                    src={`/api/files/${previewFile.id}`}
+                    style={{
+                      width: '100%',
+                      height: 'calc(94vh - 100px)',
+                      border: 'none',
+                      borderRadius: '6px',
+                    }}
+                    title={previewFile.originalName}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
         </ModalPortal>
       )}
     </div>
