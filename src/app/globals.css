@@ -401,6 +401,25 @@ select.form-input { cursor: pointer; }
 .mobile-close-btn { display: none !important; }
 .desktop-collapse-btn { display: inline-flex !important; }
 
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .cid-progress-bar {
+    display: none !important;
+  }
+}
+
 /* Responsive Media Queries */
 @media (max-width: 768px) {
   .mobile-menu-btn { display: inline-flex !important; }

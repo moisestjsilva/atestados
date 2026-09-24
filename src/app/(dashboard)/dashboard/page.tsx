@@ -182,7 +182,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Charts Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          <div className="charts-grid" style={{ marginBottom: '1.5rem' }}>
             {/* Monthly Chart */}
             <div className="card">
               <div style={{ marginBottom: '1rem' }}>
@@ -227,23 +227,23 @@ export default function DashboardPage() {
               <div style={{ marginBottom: '1rem' }}>
                 <h2 style={{ fontWeight: 600, fontSize: '1rem' }}>CIDs Mais Frequentes</h2>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
                 {data.topCids.map((cid, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: `${COLORS[i] || '#gray'}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: COLORS[i] || 'hsl(var(--muted-foreground))', flexShrink: 0 }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: `${COLORS[i] || '#gray'}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: COLORS[i] || 'hsl(var(--muted-foreground))', flexShrink: 0 }}>
                       {i + 1}
                     </div>
-                    <div style={{ minWidth: 80 }}>
+                    <div style={{ minWidth: 60, flexShrink: 0 }}>
                       <span style={{ fontWeight: 600, fontSize: '0.875rem', color: COLORS[i] || 'hsl(var(--foreground))' }}>{cid.code}</span>
                     </div>
-                    <div style={{ flex: 1, fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ flex: '1 1 120px', fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                       {cid.description}
                     </div>
-                    <div style={{ display: 'flex', gap: '1rem', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0, marginLeft: 'auto' }}>
                       <span className="badge badge-info">{cid.count} atestados</span>
-                      <span className="badge badge-warning">{cid.daysOff} dias</span>
+                      <span className="badge badge-warning">{cid.daysOff} d</span>
                     </div>
-                    <div style={{ width: 120, background: 'hsl(var(--secondary))', borderRadius: 4, height: 6, flexShrink: 0 }}>
+                    <div className="cid-progress-bar" style={{ width: 80, background: 'hsl(var(--secondary))', borderRadius: 4, height: 6, flexShrink: 0 }}>
                       <div style={{ width: `${(cid.count / (data.topCids[0]?.count || 1)) * 100}%`, background: COLORS[i] || 'hsl(var(--primary))', height: '100%', borderRadius: 4 }} />
                     </div>
                   </div>
