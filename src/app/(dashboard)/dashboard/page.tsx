@@ -206,7 +206,7 @@ export default function DashboardPage() {
             <div className="card">
               <div style={{ marginBottom: '1rem' }}>
                 <h2 style={{ fontWeight: 600, fontSize: '1rem' }}>Atestados por Setor</h2>
-                <p style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>Comparativo entre setores</p>
+                <p style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>Quantidade de atestados por setor</p>
               </div>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={data.byDepartment} margin={{ left: -20 }}>
@@ -216,7 +216,6 @@ export default function DashboardPage() {
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Bar dataKey="count" name="Atestados" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="daysOff" name="Dias afastados" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
