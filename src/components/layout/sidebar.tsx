@@ -9,9 +9,9 @@ import { getInitials } from '@/lib/utils'
 import {
   LayoutDashboard, FileText, Upload, Users, Building2,
   Stethoscope, BarChart3, Trophy, UserCog, ScrollText,
-  Settings, LogOut, ChevronLeft, Menu, FileCheck
+  Settings, LogOut, ChevronLeft, Menu, FileCheck, X
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 interface NavItem {
@@ -48,11 +48,29 @@ export function Sidebar({ pendingUsers = 0 }: { pendingUsers?: number }) {
 
   const role = (session?.user?.role || 'CONSULTOR') as UserRole
 
+  // Global event listener for topbar hamburger trigger
+  useEffect(() => {
+    const handleOpen = () => setMobileOpen(true)
+    window.addEventListener('open-mobile-sidebar', handleOpen)
+    return () => window.removeEventListener('open-mobile-sidebar', handleOpen)
+  }, [])
+
+  // Auto-close on navigation route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
+
   const renderItem = (item: NavItem) => {
     if (item.permission && !can(role, item.permission)) return null
     const isActive = pathname.startsWith(item.href)
     return (
-      <Link key={item.href} href={item.href} className={`nav-item ${isActive ? 'active' : ''}`} title={collapsed ? item.label : undefined}>
+      <Link
+        key={item.href}
+        href={item.href}
+        className={`nav-item ${isActive ? 'active' : ''}`}
+        title={collapsed ? item.label : undefined}
+        onClick={() => setMobileOpen(false)}
+      >
         <span style={{ flexShrink: 0 }}>{item.icon}</span>
         {!collapsed && <span>{item.label}</span>}
         {!collapsed && item.badge && item.badge > 0 && <span className="nav-badge">{item.badge}</span>}
@@ -70,10 +88,23 @@ export function Sidebar({ pendingUsers = 0 }: { pendingUsers?: number }) {
             <div style={{ fontSize: '0.725rem', color: 'hsl(var(--muted-foreground))' }}>Gestão de Atestados</div>
           </div>
         )}
+        
+        {/* Mobile Close Button */}
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="btn btn-ghost btn-icon mobile-close-btn"
+          style={{ marginLeft: 'auto' }}
+          aria-label="Fechar menu"
+        >
+          <X size={20} />
+        </button>
+
+        {/* Desktop Collapse Toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="btn btn-ghost btn-icon"
-          style={{ marginLeft: 'auto', display: 'none' }}
+          className="btn btn-ghost btn-icon desktop-collapse-btn"
+          style={{ marginLeft: 'auto' }}
+          aria-label="Alternar menu"
         >
           <ChevronLeft size={16} style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }} />
         </button>
@@ -90,7 +121,13 @@ export function Sidebar({ pendingUsers = 0 }: { pendingUsers?: number }) {
           {ADMIN_ITEMS.map(item => {
             if (item.href === '/usuarios') {
               return can(role, 'users:view') ? (
-                <Link key={item.href} href={item.href} className={`nav-item ${pathname.startsWith(item.href) ? 'active' : ''}`} title={collapsed ? item.label : undefined}>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`nav-item ${pathname.startsWith(item.href) ? 'active' : ''}`}
+                  title={collapsed ? item.label : undefined}
+                  onClick={() => setMobileOpen(false)}
+                >
                   <span style={{ flexShrink: 0 }}>{item.icon}</span>
                   {!collapsed && <span>{item.label}</span>}
                   {!collapsed && pendingUsers > 0 && <span className="nav-badge">{pendingUsers}</span>}
@@ -114,7 +151,7 @@ export function Sidebar({ pendingUsers = 0 }: { pendingUsers?: number }) {
             </div>
           </div>
         )}
-        <button onClick={() => signOut({ callbackUrl: '/login' })} className="nav-item" style={{ width: '100%', color: 'hsl(0 72% 60%)' }}>
+        <button onClick={() => { setMobileOpen(false); signOut({ callbackUrl: '/login' }) }} className="nav-item" style={{ width: '100%', color: 'hsl(0 72% 60%)' }}>
           <LogOut size={16} />
           {!collapsed && 'Sair'}
         </button>
@@ -127,7 +164,8 @@ export function Sidebar({ pendingUsers = 0 }: { pendingUsers?: number }) {
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 49 }}
+          className="mobile-overlay"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 99, backdropFilter: 'blur(3px)' }}
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -136,13 +174,5 @@ export function Sidebar({ pendingUsers = 0 }: { pendingUsers?: number }) {
         {sidebarContent}
       </aside>
     </>
-  )
-}
-
-export function MobileMenuButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="btn btn-ghost btn-icon" style={{ display: 'none' }}>
-      <Menu size={20} />
-    </button>
   )
 }

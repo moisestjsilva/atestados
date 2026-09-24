@@ -4,8 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { getInitials } from '@/lib/utils'
-import Link from 'next/link'
-import { Bell, Shield, User, FileText, ChevronRight } from 'lucide-react'
+import { ChevronRight, Menu } from 'lucide-react'
 
 const ROUTE_TITLES: Record<string, { title: string; category?: string }> = {
   '/dashboard': { title: 'Dashboard Geral', category: 'Visão Geral' },
@@ -41,16 +40,31 @@ export function Topbar() {
 
   const role = session?.user?.role || 'CONSULTOR'
 
+  const handleOpenMobileSidebar = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('open-mobile-sidebar'))
+    }
+  }
+
   return (
     <header className="topbar">
+      {/* Mobile Hamburger Button */}
+      <button
+        onClick={handleOpenMobileSidebar}
+        className="btn btn-ghost btn-icon mobile-menu-btn"
+        aria-label="Abrir menu de navegação"
+      >
+        <Menu size={22} />
+      </button>
+
       {/* Breadcrumb / Title */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1, minWidth: 0 }}>
         {currentMeta.category && (
           <>
-            <span style={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
+            <span className="topbar-category" style={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
               {currentMeta.category}
             </span>
-            <ChevronRight size={14} style={{ color: 'hsl(var(--muted-foreground))', opacity: 0.6 }} />
+            <ChevronRight size={14} className="topbar-category" style={{ color: 'hsl(var(--muted-foreground))', opacity: 0.6 }} />
           </>
         )}
         <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'hsl(var(--foreground))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -59,7 +73,7 @@ export function Topbar() {
       </div>
 
       {/* Right actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
 
         {/* Theme Toggle Button */}
         <ThemeToggle variant="icon" />
@@ -67,11 +81,12 @@ export function Topbar() {
         {/* User Pill */}
         {session?.user && (
           <div
+            className="user-pill"
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.625rem',
-              padding: '0.3rem 0.6rem 0.3rem 0.4rem',
+              gap: '0.5rem',
+              padding: '0.25rem 0.5rem 0.25rem 0.35rem',
               borderRadius: '24px',
               background: 'hsl(var(--secondary) / 0.7)',
               border: '1px solid hsl(var(--border))',
@@ -90,8 +105,8 @@ export function Topbar() {
             >
               {getInitials(session.user.name || '')}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-              <span style={{ fontSize: '0.775rem', fontWeight: 600, color: 'hsl(var(--foreground))', maxWidth: 120, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div className="user-pill-info" style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+              <span style={{ fontSize: '0.775rem', fontWeight: 600, color: 'hsl(var(--foreground))', maxWidth: 100, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {session.user.name?.split(' ')[0]}
               </span>
               <span style={{ fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
