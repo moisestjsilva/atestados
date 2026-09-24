@@ -9,10 +9,11 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 
 const updateSchema = z.object({
-  name: z.string().min(2).optional(),
+  name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres').optional(),
+  email: z.string().email('E-mail inválido').optional(),
   role: z.nativeEnum(UserRole).optional(),
   status: z.nativeEnum(UserStatus).optional(),
-  password: z.string().min(6).optional(),
+  password: z.string().optional(),
 })
 
 export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -36,18 +37,32 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     return apiError(msg)
   }
 
-  const { name, role, status, password } = parsed.data
+  const { name, email, role, status, password } = parsed.data
 
   // Apenas Super Admin pode promover a Super Admin
   if (role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
     return apiError('Sem permissão para atribuir role Super Admin', 403)
   }
 
+  // Se o e-mail mudou, verifica se já existe outro usuário com ele
+  if (email && email.toLowerCase() !== target.email.toLowerCase()) {
+    const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+    if (existing && existing.id !== id) {
+      return apiError('Este e-mail já está cadastrado por outro usuário', 400)
+    }
+  }
+
   const updateData: Record<string, unknown> = {}
   if (name) updateData.name = name
+  if (email) updateData.email = email.toLowerCase()
   if (role) updateData.role = role
   if (status) updateData.status = status
-  if (password) updateData.password = await bcrypt.hash(password, 12)
+  if (password && password.trim().length > 0) {
+    if (password.trim().length < 6) {
+      return apiError('A nova senha deve ter no mínimo 6 caracteres', 400)
+    }
+    updateData.password = await bcrypt.hash(password.trim(), 12)
+  }
 
   const updated = await prisma.user.update({
     where: { id },
