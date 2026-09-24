@@ -11,11 +11,12 @@ export const metadata: Metadata = {
   description: 'Gestão centralizada de atestados médicos e declarações CLT empresariais',
   icons: {
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png?v=2', type: 'image/png' },
+      { url: '/favicon.svg?v=2', type: 'image/svg+xml' },
+      { url: '/favicon.ico?v=2', sizes: 'any' },
     ],
-    shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
+    shortcut: '/icon.png?v=2',
+    apple: '/apple-icon.png?v=2',
   },
 }
 
