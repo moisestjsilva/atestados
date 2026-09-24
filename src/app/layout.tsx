@@ -7,8 +7,16 @@ import { Providers } from './providers'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Sistema de Gestão de Atestados',
-  description: 'Gestão centralizada de atestados médicos empresariais',
+  title: 'AtestApp - Gestão de Atestados e Declarações',
+  description: 'Gestão centralizada de atestados médicos e declarações CLT empresariais',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 }
 
 const themeInitScript = `
