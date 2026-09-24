@@ -59,11 +59,11 @@ function LoginForm() {
       <div className="auth-card animate-fade-in">
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, background: 'linear-gradient(135deg, hsl(217 91% 60%), #6366f1)', borderRadius: 16, marginBottom: '1rem' }}>
-            <FileText size={28} color="white" />
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, background: 'linear-gradient(135deg, #0b132b, #1c2541)', borderRadius: 18, marginBottom: '1rem', boxShadow: '0 8px 16px -4px rgba(0, 242, 254, 0.25)', padding: 8 }}>
+            <img src="/favicon.svg" alt="AtestApp Logo" style={{ width: 44, height: 44, objectFit: 'contain' }} />
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.25rem' }}>Gestão de Atestados</h1>
-          <p style={{ fontSize: '0.875rem', color: 'hsl(var(--muted-foreground))' }}>Acesse com suas credenciais</p>
+          <h1 style={{ fontSize: '1.625rem', fontWeight: 800, marginBottom: '0.25rem', letterSpacing: '-0.02em' }}>AtestApp</h1>
+          <p style={{ fontSize: '0.875rem', color: 'hsl(var(--muted-foreground))' }}>Gestão Integrada de Atestados & Declarações</p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
