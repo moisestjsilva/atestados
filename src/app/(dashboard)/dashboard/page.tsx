@@ -1,5 +1,5 @@
-import { FilterCard } from '@/components/ui/filter-card'
 'use client'
+import { FilterCard } from '@/components/ui/filter-card'
 import { useState, useEffect, useCallback } from 'react'
 import {
   Users, FileText, Calendar, Clock, TrendingUp,
