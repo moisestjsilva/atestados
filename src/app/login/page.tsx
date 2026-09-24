@@ -59,8 +59,8 @@ function LoginForm() {
       <div className="auth-card animate-fade-in">
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, background: 'linear-gradient(135deg, #0b132b, #1c2541)', borderRadius: 18, marginBottom: '1rem', boxShadow: '0 8px 16px -4px rgba(0, 242, 254, 0.25)', padding: 8 }}>
-            <img src="/favicon.svg" alt="AtestApp Logo" style={{ width: 44, height: 44, objectFit: 'contain' }} />
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, marginBottom: '0.75rem' }}>
+            <img src="/favicon.svg" alt="AtestApp Logo" style={{ width: 64, height: 64, objectFit: 'contain' }} />
           </div>
           <h1 style={{ fontSize: '1.625rem', fontWeight: 800, marginBottom: '0.25rem', letterSpacing: '-0.02em' }}>AtestApp</h1>
           <p style={{ fontSize: '0.875rem', color: 'hsl(var(--muted-foreground))' }}>Gestão Integrada de Atestados & Declarações</p>

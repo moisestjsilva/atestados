@@ -63,13 +63,11 @@ export function Sidebar({ pendingUsers = 0 }: { pendingUsers?: number }) {
   const sidebarContent = (
     <>
       <div className="sidebar-header">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '8px', background: 'hsl(var(--secondary) / 0.5)', padding: '2px', flexShrink: 0 }}>
-          <img src="/favicon.svg" alt="AtestApp Logo" style={{ width: 28, height: 28, objectFit: 'contain' }} />
-        </div>
+        <img src="/favicon.svg" alt="AtestApp Logo" style={{ width: 34, height: 34, objectFit: 'contain', flexShrink: 0 }} />
         {!collapsed && (
           <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>AtestApp</div>
-            <div style={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>Gestão de Atestados</div>
+            <div style={{ fontWeight: 700, fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>AtestApp</div>
+            <div style={{ fontSize: '0.725rem', color: 'hsl(var(--muted-foreground))' }}>Gestão de Atestados</div>
           </div>
         )}
         <button

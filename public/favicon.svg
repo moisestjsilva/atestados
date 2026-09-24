@@ -1,35 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0b1329"/>
-      <stop offset="100%" stop-color="#1e293b"/>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
     </linearGradient>
-    <linearGradient id="checkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00f2fe"/>
-      <stop offset="100%" stop-color="#4facfe"/>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#0891b2" />
     </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00f2fe" flood-opacity="0.4"/>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1d4ed8" flood-opacity="0.25"/>
     </filter>
   </defs>
 
-  <!-- Background Squircle -->
-  <rect x="20" y="20" width="472" height="472" rx="100" fill="url(#bgGrad)" stroke="#00f2fe" stroke-width="6" stroke-opacity="0.3"/>
+  <!-- Document Body (Blue Gradient) -->
+  <g filter="url(#shadow)">
+    <rect x="76" y="44" width="360" height="424" rx="44" fill="url(#blueGrad)" />
+    <!-- Top right corner fold -->
+    <path d="M 356 44 L 436 124 L 356 124 Z" fill="#93c5fd" opacity="0.9" />
+    <!-- White inner sheet -->
+    <rect x="108" y="84" width="296" height="344" rx="28" fill="#ffffff" />
+  </g>
 
-  <!-- Document Outline -->
-  <path d="M 150 100 H 300 L 362 162 V 412 H 150 Z" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-  
-  <!-- Fold Corner -->
-  <path d="M 300 100 V 162 H 362" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Medical Cross (Vibrant Blue) -->
+  <rect x="238" y="150" width="36" height="104" rx="10" fill="#1d4ed8" />
+  <rect x="204" y="184" width="104" height="36" rx="10" fill="#1d4ed8" />
 
-  <!-- Medical Cross -->
-  <path d="M 236 170 H 276 V 230 H 336 V 270 H 276 V 330 H 236 V 270 H 176 V 230 H 236 Z" fill="none" stroke="#ffffff" stroke-width="16" stroke-linejoin="round"/>
-
-  <!-- Document Text Lines -->
-  <line x1="190" y1="310" x2="310" y2="310" stroke="#64748b" stroke-width="12" stroke-linecap="round"/>
-  <line x1="190" y1="345" x2="280" y2="345" stroke="#64748b" stroke-width="12" stroke-linecap="round"/>
-  <line x1="190" y1="380" x2="250" y2="380" stroke="#64748b" stroke-width="12" stroke-linecap="round"/>
-
-  <!-- Vibrant Cyan Checkmark -->
-  <path d="M 180 295 L 245 360 L 375 205" fill="none" stroke="url(#checkGrad)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+  <!-- Cyan Checkmark Badge (Bottom Right) -->
+  <circle cx="334" cy="334" r="68" fill="url(#cyanGrad)" />
+  <path d="M 302 334 L 324 356 L 368 310" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
 </svg>
