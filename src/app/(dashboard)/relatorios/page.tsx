@@ -1,5 +1,7 @@
 // src/app/(dashboard)/relatorios/page.tsx
 'use client'
+import { FilterCard } from '@/components/ui/filter-card'
+
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { can } from '@/lib/permissions'
@@ -64,13 +66,14 @@ export default function RelatoriosPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="report-layout-grid">
         {/* Filters panel */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-            <Filter size={16} style={{ color: 'hsl(var(--primary))' }} />
-            <span style={{ fontWeight: 600 }}>Filtros</span>
-          </div>
+        <FilterCard
+          title="Filtros do Relatório"
+          activeCount={filters.departmentId ? 1 : 0}
+          onClear={() => setFilters({ dateFrom: `${new Date().getFullYear()}-01-01`, dateTo: `${new Date().getFullYear()}-12-31`, departmentId: '', format: 'json' })}
+          style={{ marginBottom: 0 }}
+        >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
             <div className="form-group">
               <label className="form-label">Data inicial</label>
@@ -87,14 +90,11 @@ export default function RelatoriosPage() {
                 {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
-            <button onClick={loadStats} disabled={loading} className="btn btn-primary">
+            <button onClick={loadStats} disabled={loading} className="btn btn-primary" style={{ marginTop: '0.25rem' }}>
               {loading ? <><Loader2 size={14} className="animate-spin" />Carregando...</> : <><Filter size={14} />Aplicar filtros</>}
             </button>
-            <button onClick={() => setFilters({ dateFrom: `${new Date().getFullYear()}-01-01`, dateTo: `${new Date().getFullYear()}-12-31`, departmentId: '', format: 'json' })} className="btn btn-ghost btn-sm">
-              <X size={14} />Limpar filtros
-            </button>
           </div>
-        </div>
+        </FilterCard>
 
         {/* Report area */}
         <div>

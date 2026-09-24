@@ -406,7 +406,6 @@ select.form-input { cursor: pointer; }
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
 }
-
 @media (max-width: 900px) {
   .charts-grid {
     grid-template-columns: 1fr;
@@ -420,8 +419,24 @@ select.form-input { cursor: pointer; }
   }
 }
 
+.report-layout-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .report-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.mobile-filter-toggle { display: none !important; }
+
 /* Responsive Media Queries */
 @media (max-width: 768px) {
+  .mobile-filter-toggle { display: inline-flex !important; }
   .mobile-menu-btn { display: inline-flex !important; }
   .mobile-close-btn { display: inline-flex !important; }
   .desktop-collapse-btn { display: none !important; }

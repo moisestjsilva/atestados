@@ -1,5 +1,7 @@
 // src/app/(dashboard)/funcionarios/page.tsx
 'use client'
+import { FilterCard } from '@/components/ui/filter-card'
+
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { can } from '@/lib/permissions'
@@ -135,35 +137,39 @@ export default function FuncionariosPage() {
       </div>
 
       {/* Filters */}
-      <div className="card" style={{ marginBottom: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div className="form-group" style={{ flex: '1 1 200px' }}>
-          <label className="form-label">Buscar</label>
-          <div style={{ position: 'relative' }}>
-            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--muted-foreground))' }} />
-            <input type="text" placeholder="Nome, CPF, matrícula..." value={search} onChange={e => setSearch(e.target.value)} className="form-input" style={{ paddingLeft: '2.25rem' }} />
+      <FilterCard
+        activeCount={
+          (search ? 1 : 0) +
+          (filterStatus ? 1 : 0) +
+          (filterDept ? 1 : 0)
+        }
+        onClear={() => { setSearch(''); setFilterStatus(''); setFilterDept('') }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="form-label">Buscar</label>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--muted-foreground))' }} />
+              <input type="text" placeholder="Nome, CPF, matrícula..." value={search} onChange={e => setSearch(e.target.value)} className="form-input" style={{ paddingLeft: '2.25rem' }} />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Status</label>
+            <select className="form-input" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <option value="">Todos</option>
+              <option value="ATIVO">Ativo</option>
+              <option value="INATIVO">Inativo</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Setor</label>
+            <select className="form-input" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
+              <option value="">Todos</option>
+              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
           </div>
         </div>
-        <div className="form-group" style={{ minWidth: 140 }}>
-          <label className="form-label">Status</label>
-          <select className="form-input" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="">Todos</option>
-            <option value="ATIVO">Ativo</option>
-            <option value="INATIVO">Inativo</option>
-          </select>
-        </div>
-        <div className="form-group" style={{ minWidth: 160 }}>
-          <label className="form-label">Setor</label>
-          <select className="form-input" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-            <option value="">Todos</option>
-            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </div>
-        {(search || filterStatus || filterDept) && (
-          <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterDept('') }} className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-end' }}>
-            <X size={14} />Limpar
-          </button>
-        )}
-      </div>
+      </FilterCard>
 
       {/* Table */}
       <div className="card">

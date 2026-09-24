@@ -1,5 +1,7 @@
 // src/app/(dashboard)/rankings/page.tsx
 'use client'
+import { FilterCard } from '@/components/ui/filter-card'
+
 import { useState, useEffect, useCallback } from 'react'
 import { Trophy, Medal, Loader2, Filter, X } from 'lucide-react'
 import { MONTHS } from '@/lib/utils'
@@ -69,28 +71,28 @@ export default function RankingsPage() {
       </div>
 
       {/* Filtros */}
-      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <div className="form-group">
-          <label className="form-label">Ano</label>
-          <select className="form-input" value={year} onChange={e => setYear(parseInt(e.target.value))}>
-            {years.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-        </div>
-        {type === 'employees' && (
+      <FilterCard
+        activeCount={filterDept ? 1 : 0}
+        onClear={() => setFilterDept('')}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
           <div className="form-group">
-            <label className="form-label">Setor</label>
-            <select className="form-input" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-              <option value="">Todos</option>
-              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            <label className="form-label">Ano</label>
+            <select className="form-input" value={year} onChange={e => setYear(parseInt(e.target.value))}>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
-        )}
-        {filterDept && (
-          <button onClick={() => setFilterDept('')} className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-end' }}>
-            <X size={14} />Limpar
-          </button>
-        )}
-      </div>
+          {type === 'employees' && (
+            <div className="form-group">
+              <label className="form-label">Setor</label>
+              <select className="form-input" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
+                <option value="">Todos</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+      </FilterCard>
 
       <div className="card">
         {loading ? (

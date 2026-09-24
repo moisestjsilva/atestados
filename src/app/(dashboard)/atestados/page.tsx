@@ -1,5 +1,7 @@
 // src/app/(dashboard)/atestados/page.tsx
 'use client'
+import { FilterCard } from '@/components/ui/filter-card'
+
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
@@ -351,35 +353,40 @@ export default function AtestadosPage() {
       </div>
 
       {/* Filters */}
-      <div className="card" style={{ marginBottom: '1.25rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div className="form-group" style={{ flex: '1 1 240px' }}>
-          <label className="form-label">Buscar por Nome ou CPF</label>
-          <div style={{ position: 'relative' }}>
-            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--muted-foreground))' }} />
-            <input type="text" placeholder="Buscar por nome ou CPF do funcionário..." value={search} onChange={e => setSearch(e.target.value)} className="form-input" style={{ paddingLeft: '2.25rem' }} />
+      <FilterCard
+        activeCount={
+          (search ? 1 : 0) +
+          (filterDept ? 1 : 0) +
+          (filterFrom ? 1 : 0) +
+          (filterTo ? 1 : 0)
+        }
+        onClear={() => { setSearch(''); setFilterDept(''); setFilterFrom(''); setFilterTo('') }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="form-label">Buscar por Nome ou CPF</label>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--muted-foreground))' }} />
+              <input type="text" placeholder="Buscar por nome ou CPF do funcionário..." value={search} onChange={e => setSearch(e.target.value)} className="form-input" style={{ paddingLeft: '2.25rem' }} />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Setor</label>
+            <select className="form-input" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
+              <option value="">Todos os setores</option>
+              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Data inicial</label>
+            <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="form-input" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Data final</label>
+            <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="form-input" />
           </div>
         </div>
-        <div className="form-group" style={{ minWidth: 160 }}>
-          <label className="form-label">Setor</label>
-          <select className="form-input" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-            <option value="">Todos os setores</option>
-            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </div>
-        <div className="form-group" style={{ minWidth: 140 }}>
-          <label className="form-label">Data inicial</label>
-          <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} className="form-input" />
-        </div>
-        <div className="form-group" style={{ minWidth: 140 }}>
-          <label className="form-label">Data final</label>
-          <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} className="form-input" />
-        </div>
-        {(search || filterDept || filterFrom || filterTo) && (
-          <button onClick={() => { setSearch(''); setFilterDept(''); setFilterFrom(''); setFilterTo('') }} className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-end' }}>
-            <X size={14} /> Limpar filtros
-          </button>
-        )}
-      </div>
+      </FilterCard>
 
       {/* Table */}
       <div className="card">

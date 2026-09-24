@@ -1,4 +1,4 @@
-// src/app/(dashboard)/dashboard/page.tsx
+import { FilterCard } from '@/components/ui/filter-card'
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import {
@@ -100,12 +100,16 @@ export default function DashboardPage() {
       </div>
 
       {/* Filters */}
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-          <Filter size={16} style={{ color: 'hsl(var(--primary))' }} />
-          <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Filtros</span>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
+      <FilterCard
+        activeCount={
+          (filters.month ? 1 : 0) +
+          (filters.departmentId ? 1 : 0) +
+          (filters.dateFrom ? 1 : 0) +
+          (filters.dateTo ? 1 : 0)
+        }
+        onClear={clearFilters}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
           <div className="form-group">
             <label className="form-label">Ano</label>
             <select className="form-input" value={filters.year} onChange={e => setFilters(f => ({ ...f, year: parseInt(e.target.value) }))}>
@@ -134,11 +138,8 @@ export default function DashboardPage() {
             <label className="form-label">Data final</label>
             <input type="date" className="form-input" value={filters.dateTo} onChange={e => setFilters(f => ({ ...f, dateTo: e.target.value }))} />
           </div>
-          <button onClick={clearFilters} className="btn btn-secondary" style={{ alignSelf: 'flex-end' }}>
-            <X size={14} />Limpar filtros
-          </button>
         </div>
-      </div>
+      </FilterCard>
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: 'hsl(var(--muted-foreground))' }}>
