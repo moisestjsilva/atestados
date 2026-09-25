@@ -1,5 +1,7 @@
 // src/app/login/page.tsx
 'use client'
+import { AppLogo } from '@/components/ui/app-logo'
+
 import { Suspense, useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -60,7 +62,7 @@ function LoginForm() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, marginBottom: '0.75rem' }}>
-            <img src="/favicon.svg" alt="AtestApp Logo" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+            <AppLogo size={64} />
           </div>
           <h1 style={{ fontSize: '1.625rem', fontWeight: 800, marginBottom: '0.25rem', letterSpacing: '-0.02em' }}>AtestApp</h1>
           <p style={{ fontSize: '0.875rem', color: 'hsl(var(--muted-foreground))' }}>Gestão Integrada de Atestados & Declarações</p>

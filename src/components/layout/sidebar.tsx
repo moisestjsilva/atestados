@@ -1,5 +1,7 @@
 // src/components/layout/sidebar.tsx
 'use client'
+import { AppLogo } from '@/components/ui/app-logo'
+
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
@@ -81,7 +83,7 @@ export function Sidebar({ pendingUsers = 0 }: { pendingUsers?: number }) {
   const sidebarContent = (
     <>
       <div className="sidebar-header">
-        <img src="/favicon.svg" alt="AtestApp Logo" style={{ width: 34, height: 34, objectFit: 'contain', flexShrink: 0 }} />
+        <AppLogo size={34} />
         {!collapsed && (
           <div style={{ overflow: 'hidden' }}>
             <div style={{ fontWeight: 700, fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>AtestApp</div>
